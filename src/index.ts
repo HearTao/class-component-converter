@@ -10,7 +10,7 @@ function isComponentDecorator(expr: ts.Decorator): boolean {
 }
 
 function isPropsDecorator(expr: ts.Decorator): boolean {
-    return ts.isIdentifier(expr.expression) && expr.expression.text === 'Prop'
+    return ts.isCallExpression(expr.expression) && ts.isIdentifier(expr.expression.expression) && expr.expression.expression.text === 'Prop'
 }
 
 function classNeedTransform(node: ts.ClassDeclaration): boolean {
@@ -307,18 +307,17 @@ function classTransformer(): ts.TransformerFactory<ts.SourceFile> {
 }
 
 export function convert(code: string): string {
-    const result = ts.transpileModule(code, {
-        compilerOptions: {
+    const result = ts.transform(
+        ts.createSourceFile('', code, ts.ScriptTarget.Latest),
+        [classTransformer()],
+        {
             jsx: ts.JsxEmit.Preserve,
-            target: ts.ScriptTarget.Latest,
-            experimentalDecorators: true
-        },
-        transformers: {
-            before: [
-                classTransformer()
-            ]
+            experimentalDecorators: true,
+            target: ts.ScriptTarget.Latest
         }
-    })
-
-    return result.outputText
+    )
+    
+    const printer = ts.createPrinter()
+    const newCode = printer.printFile(result.transformed[0])
+    return newCode
 }
