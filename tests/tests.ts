@@ -1,4 +1,5 @@
 import { convert } from '../src';
+import * as prettier from 'prettier';
 
 const code = `
 @Component
@@ -30,5 +31,7 @@ export default class YourComponent extends Vue {
 }
 `;
 
-const result = convert(code);
+const result = prettier.format(convert(code), {
+    parser: 'typescript'
+});
 console.log(result);

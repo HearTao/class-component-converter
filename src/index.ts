@@ -376,7 +376,7 @@ function transformClassMethodDeclaration(
 
 function transformClassDeclaration(
     node: ts.ClassDeclaration
-): ts.ObjectLiteralExpression {
+): ts.VariableStatement {
     const {
         render,
         computed,
@@ -387,27 +387,45 @@ function transformClassDeclaration(
         ignored
     } = collectClassDeclarationInfo(node);
 
-    return ts.createObjectLiteral(
-        append(
+    return ts.createVariableStatement(
+        undefined,
+        ts.createVariableDeclarationList(
             [
-                ts.createMethod(
+                ts.createVariableDeclaration(
+                    node.name!,
                     undefined,
-                    undefined,
-                    undefined,
-                    'steup',
-                    undefined,
-                    undefined,
-                    [transformClassProps(props)],
-                    undefined,
-                    ts.createBlock([
-                        ...transformClassStates(states),
-                        ...transformClassComputedDeclaration(computed),
-                        ...transformClassMethodDeclaration(methods),
-                        ...transformClassLifeCycleDeclaration(lifecycles)
-                    ])
+                    ts.createObjectLiteral(
+                        append(
+                            [
+                                ts.createMethod(
+                                    undefined,
+                                    undefined,
+                                    undefined,
+                                    'steup',
+                                    undefined,
+                                    undefined,
+                                    [transformClassProps(props)],
+                                    undefined,
+                                    ts.createBlock([
+                                        ...transformClassStates(states),
+                                        ...transformClassComputedDeclaration(
+                                            computed
+                                        ),
+                                        ...transformClassMethodDeclaration(
+                                            methods
+                                        ),
+                                        ...transformClassLifeCycleDeclaration(
+                                            lifecycles
+                                        )
+                                    ])
+                                )
+                            ],
+                            render
+                        )
+                    )
                 )
             ],
-            render
+            ts.NodeFlags.Const
         )
     );
 }
