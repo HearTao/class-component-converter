@@ -245,7 +245,7 @@ function transformClassProps(
 ): ts.ParameterDeclaration {
     return ts.createParameter(
         undefined,
-        [ts.createModifier(ts.SyntaxKind.ReadonlyKeyword)],
+        undefined,
         undefined,
         ts.createIdentifier('props'),
         undefined,
