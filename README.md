@@ -34,8 +34,9 @@ class-component-converter is a transformer to convert your Vue component to Vue 
     - [x] vue-property-decorator
     - [ ] vue-tsx-support
 
-- Vuex support
+- Vuex & Vue router support
     - [ ] vuex
+    - [ ] vue-router
     - [ ] vuex-class
 
 - Vue file support
