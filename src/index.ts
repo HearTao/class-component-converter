@@ -1,5 +1,6 @@
 import * as ts from 'typescript';
 import { some, append } from './utils';
+import { getCompileHost } from './host';
 
 function isVueClass(type: ts.ExpressionWithTypeArguments): boolean {
     return ts.isIdentifier(type.expression) && type.expression.text === 'Vue';
@@ -19,7 +20,7 @@ function isPropsDecorator(expr: ts.Decorator): boolean {
     );
 }
 
-function classNeedTransform(node: ts.ClassDeclaration): boolean {
+function classNeedTransform(node: ts.ClassLikeDeclaration): boolean {
     return (
         some(
             node.heritageClauses,
@@ -28,6 +29,19 @@ function classNeedTransform(node: ts.ClassDeclaration): boolean {
                 some(x.types, isVueClass)
         ) && some(node.decorators, isComponentDecorator)
     );
+}
+
+function propertyAccessNeedTransform(node: ts.PropertyAccessExpression, checker: ts.TypeChecker): boolean {
+    if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
+        const symbol = checker.getSymbolAtLocation(node.name)
+        if (symbol && symbol.valueDeclaration) {
+            const property = symbol.valueDeclaration
+            if (ts.isPropertyDeclaration(property)) {
+                return classNeedTransform(property.parent)
+            }
+        }
+    }
+    return false
 }
 
 function isClassStateDeclaration(
@@ -298,7 +312,7 @@ function transformClassComputedDeclaration(
                                         ts.createArrowFunction(
                                             undefined,
                                             undefined,
-                                            [],
+                                            comp.setter.parameters,
                                             undefined,
                                             ts.createToken(
                                                 ts.SyntaxKind
@@ -430,12 +444,18 @@ function transformClassDeclaration(
     );
 }
 
-function classTransformer(): ts.TransformerFactory<ts.SourceFile> {
+function transformPropertyAccessExpression (node: ts.PropertyAccessExpression): ts.Node {
+    return node.name
+}
+
+function classTransformer(checker: ts.TypeChecker): ts.TransformerFactory<ts.SourceFile> {
     return context => {
         const visitor: ts.Visitor = node => {
             switch (node.kind) {
                 case ts.SyntaxKind.ClassDeclaration:
                     return classDeclarationVisitor(node as ts.ClassDeclaration);
+                case ts.SyntaxKind.PropertyAccessExpression:
+                    return PropertyAccessExpressionVisitor(node as ts.PropertyAccessExpression)
                 default:
                     return ts.visitEachChild(node, visitor, context);
             }
@@ -452,18 +472,38 @@ function classTransformer(): ts.TransformerFactory<ts.SourceFile> {
             }
             return ts.visitEachChild(declaration, visitor, context);
         }
+
+        function PropertyAccessExpressionVisitor(declaration: ts.PropertyAccessExpression) {
+            if (propertyAccessNeedTransform(declaration, checker)) {
+                return ts.visitEachChild(
+                    transformPropertyAccessExpression(declaration),
+                    visitor,
+                    context
+                );
+            }
+            return ts.visitEachChild(declaration, visitor, context);
+        }
     };
 }
 
 export function convert(code: string): string {
+    const host = getCompileHost()
+
+    const filename = 'mod.tsx'
+    host.writeFile(filename, code, false)
+
+    const program = ts.createProgram([filename], {
+        jsx: ts.JsxEmit.Preserve,
+        experimentalDecorators: true,
+        target: ts.ScriptTarget.Latest
+    }, host)
+
+    const checker = program.getTypeChecker()
+    const sourceFile = program.getSourceFile(filename)
+
     const result = ts.transform(
-        ts.createSourceFile('', code, ts.ScriptTarget.Latest),
-        [classTransformer()],
-        {
-            jsx: ts.JsxEmit.Preserve,
-            experimentalDecorators: true,
-            target: ts.ScriptTarget.Latest
-        }
+        sourceFile!,
+        [classTransformer(checker)],
     );
 
     const printer = ts.createPrinter();

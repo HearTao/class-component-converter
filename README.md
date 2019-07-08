@@ -29,6 +29,7 @@ class-component-converter is a transformer to convert your Vue component to Vue 
     - [ ] vue-next
 
 - Better TypeScript support
+    - [x] Compiler Host
     - [ ] JavaScript support
     - [ ] Type annotation transform
 

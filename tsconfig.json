@@ -4,6 +4,8 @@
         "module": "commonjs",
         "moduleResolution": "node",
         "strict": true,
-        "alwaysStrict": true
+        "alwaysStrict": true,
+        "outDir": "lib",
+        "sourceMap": true
     }
 }
