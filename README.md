@@ -12,13 +12,17 @@ class-component-converter is a transformer to convert your Vue component to Vue 
     - [x] computed
     - [x] methods
     - [x] lifecycle
+    - [ ] events
     - [ ] provide / inject
     - [ ] watch
     - [x] render
 
-- Vue instance Transform
+- Vue instance transform
     - [ ] Property access
     - [ ] Destruction
+    - [ ] Emit
+    - [ ] Tsx Event to callback
+    - [ ] Slots to callack
 
 - RFC support
     - [x] vue-function-api
