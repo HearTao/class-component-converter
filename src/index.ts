@@ -317,7 +317,7 @@ function transformClassComputedDeclaration(
 }
 
 function transformClassLifeCycleName(name: string): string {
-    return `on${name.replace(/^([a-z])\W+$/, String.prototype.toUpperCase)}`;
+    return `on${name[0].toUpperCase()}${name.slice(1)}`
 }
 
 function transformClassLifeCycleDeclaration(
