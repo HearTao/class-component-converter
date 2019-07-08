@@ -1,14 +1,17 @@
-export function some<T>(items: ReadonlyArray<T> | null | undefined, cb: (v: T) => boolean): boolean {
-    return !!(items && items.some(cb))
+export function some<T>(
+    items: ReadonlyArray<T> | null | undefined,
+    cb: (v: T) => boolean
+): boolean {
+    return !!(items && items.some(cb));
 }
 
 export function isDef<T>(v: T | undefined): v is T {
-    return v !== undefined && v !== null
+    return v !== undefined && v !== null;
 }
 
 export function append<T>(to: T[] | undefined, item: T | undefined): T[] {
-    if (!isDef(item)) return to || []
-    if (!isDef(to)) return [item]
-    to.push(item)
-    return to
+    if (!isDef(item)) return to || [];
+    if (!isDef(to)) return [item];
+    to.push(item);
+    return to;
 }

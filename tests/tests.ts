@@ -1,4 +1,4 @@
-import { convert } from '../src'
+import { convert } from '../src';
 
 const code = `
 @Component
@@ -28,7 +28,7 @@ export default class YourComponent extends Vue {
         console.log(123)
     }
 }
-`
+`;
 
-const result = convert(code)
-console.log(result)
+const result = convert(code);
+console.log(result);
