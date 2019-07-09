@@ -1,4 +1,4 @@
-export type NotNull<T> = Exclude<T, undefined | null>
+export type NotNull<T> = Exclude<T, undefined | null>;
 
 export function some<T>(
     items: ReadonlyArray<T> | null | undefined,
@@ -29,15 +29,14 @@ export function not<P extends any[]>(
 export function or<P extends any[]>(
     ...funcs: Array<(...args: P) => boolean>
 ): (...args: P) => boolean {
-    return (...args: P ) => {
+    return (...args: P) => {
         return funcs.some(func => func(...args));
     };
 }
 
 export function cast<T, U extends T>(value: T, cb: (v: T) => v is U): U {
     if (!cb(value)) {
-        throw new Error('invalid cast')
+        throw new Error('invalid cast');
     }
-    return value
+    return value;
 }
-

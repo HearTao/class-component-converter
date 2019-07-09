@@ -14,7 +14,7 @@ export default class YourComponent extends Vue {
     }
 
     get why() {
-        return this.data2 + 1
+        return this.data2 + this.propsA + 1
     }
 
     set why (value) {
@@ -31,6 +31,7 @@ export default class YourComponent extends Vue {
         const { fff } = foo()
 
         console.log(propsA, data1, data2, what, why, hehe)
+        console.log(this.propsA, this.data1, this.data2, this.what, this.why, this.hehe)
     }
 
     mounted () {
