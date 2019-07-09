@@ -16,8 +16,10 @@ export function append<T>(to: T[] | undefined, item: T | undefined): T[] {
     return to;
 }
 
-export function not<P extends any[]>(cb: (...args: P) => boolean): (...args: P) => boolean {
+export function not<P extends any[]>(
+    cb: (...args: P) => boolean
+): (...args: P) => boolean {
     return (...args: P) => {
-        return !cb(...args)
-    }
+        return !cb(...args);
+    };
 }

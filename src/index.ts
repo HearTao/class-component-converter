@@ -36,7 +36,7 @@ function propertyAccessNeedTransform(
     checker: ts.TypeChecker
 ): boolean {
     if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
-        const symbol = checker.getSymbolAtLocation(node.name);
+        const symbol = checker.getSymbolAtLocation(node);
         if (symbol && symbol.valueDeclaration) {
             const property = symbol.valueDeclaration;
             if (ts.isPropertyDeclaration(property)) {
@@ -58,7 +58,8 @@ function variableNeedTransform(node: ts.VariableDeclaration): boolean {
     return !!(
         node.initializer &&
         ts.isObjectBindingPattern(node.name) &&
-        skipParent(node.initializer).kind === ts.SyntaxKind.ThisKeyword)
+        skipParent(node.initializer).kind === ts.SyntaxKind.ThisKeyword
+    );
 }
 
 function variableStatementNeedTransform(stmt: ts.VariableStatement): boolean {
@@ -491,13 +492,15 @@ function transformPropertyAccessExpression(
 }
 
 function transformVariableStatement(node: ts.VariableStatement): ts.Node {
-    const newDeclList = node.declarationList.declarations.filter(not(variableNeedTransform))
-    return newDeclList.length ? ts.createVariableStatement(
-        node.modifiers,
-        ts.createVariableDeclarationList(
-            newDeclList
-        )
-    ) : ts.createEmptyStatement()
+    const newDeclList = node.declarationList.declarations.filter(
+        not(variableNeedTransform)
+    );
+    return newDeclList.length
+        ? ts.createVariableStatement(
+              node.modifiers,
+              ts.createVariableDeclarationList(newDeclList)
+          )
+        : ts.createEmptyStatement();
 }
 
 function classTransformer(
@@ -546,9 +549,7 @@ function classTransformer(
             return ts.visitEachChild(declaration, visitor, context);
         }
 
-        function variableStatementVisitor(
-            declaration: ts.VariableStatement
-        ) {
+        function variableStatementVisitor(declaration: ts.VariableStatement) {
             if (variableStatementNeedTransform(declaration)) {
                 return ts.visitEachChild(
                     transformVariableStatement(declaration),

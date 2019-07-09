@@ -28,6 +28,7 @@ export default class YourComponent extends Vue {
 
     fooo () {
         const { propsA, data1, data2, what, why, hehe } = this
+        const { fff } = foo()
 
         console.log(propsA, data1, data2, what, why, hehe)
     }
