@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import { some, append, not, or, cast } from './utils';
+import { some, append, not, or, cast, first } from './utils';
 import createVHost from './host';
 
 function isVueClass(type: ts.ExpressionWithTypeArguments): boolean {
@@ -17,6 +17,14 @@ function isPropsDecorator(expr: ts.Decorator): boolean {
         ts.isCallExpression(expr.expression) &&
         ts.isIdentifier(expr.expression.expression) &&
         expr.expression.expression.text === 'Prop'
+    );
+}
+
+function isWatchDecorator(expr: ts.Decorator): boolean {
+    return (
+        ts.isCallExpression(expr.expression) &&
+        ts.isIdentifier(expr.expression.expression) &&
+        expr.expression.expression.text === 'Watch'
     );
 }
 
@@ -129,10 +137,16 @@ function isClassMethodDeclaration(
 function isRenderFunction(
     node: ts.ClassElement
 ): node is ClassMethodDeclaration {
+    return isClassMethodDeclaration(node) && node.name.text === 'render';
+}
+
+function isClassWatchDeclaration(
+    node: ts.ClassElement
+): node is ClassWatchDeclaration {
     return (
-        isClassMethodDeclaration(node) &&
+        ts.isMethodDeclaration(node) &&
         ts.isIdentifier(node.name) &&
-        node.name.text === 'render'
+        some(node.decorators, isWatchDecorator)
     );
 }
 
@@ -184,6 +198,7 @@ function isValidComputedDeclaration(
 }
 
 type IdentifierName = { name: ts.Identifier };
+type Decorators = { decorators: ReadonlyArray<ts.Decorator> };
 
 type ClassStateDeclaration = ts.PropertyDeclaration & IdentifierName;
 type ClassPropDeclaration = ts.PropertyDeclaration & IdentifierName;
@@ -192,6 +207,10 @@ type ClassLifeCycleDeclaration = ts.MethodDeclaration &
     BodyDeclaration<ts.MethodDeclaration>;
 type ClassMethodDeclaration = ts.MethodDeclaration &
     IdentifierName &
+    BodyDeclaration<ts.MethodDeclaration>;
+type ClassWatchDeclaration = ts.MethodDeclaration &
+    IdentifierName &
+    Decorators &
     BodyDeclaration<ts.MethodDeclaration>;
 
 type BodyDeclaration<
@@ -221,6 +240,7 @@ interface ComponentInfo {
     states: ClassStateDeclaration[];
     props: ClassPropDeclaration[];
     methods: ClassMethodDeclaration[];
+    watchers: ClassWatchDeclaration[];
     lifecycles: ClassLifeCycleDeclaration[];
     ignored: ts.ClassElement[];
 }
@@ -231,6 +251,7 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
     const states: ClassStateDeclaration[] = [];
     const props: ClassPropDeclaration[] = [];
     const methods: ClassMethodDeclaration[] = [];
+    const watchers: ClassWatchDeclaration[] = [];
     const lifecycles: ClassLifeCycleDeclaration[] = [];
     const ignored: ts.ClassElement[] = [];
 
@@ -265,6 +286,8 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
             case ts.SyntaxKind.MethodDeclaration:
                 if (isRenderFunction(member)) {
                     render = member;
+                } else if (isClassWatchDeclaration(member)) {
+                    watchers.push(member);
                 } else if (isClassLifeCycleDeclaration(member)) {
                     lifecycles.push(member);
                 } else if (isClassMethodDeclaration(member)) {
@@ -284,6 +307,7 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
         states,
         props,
         methods,
+        watchers,
         lifecycles,
         ignored
     };
@@ -540,6 +564,40 @@ function classTransformer(
             );
         }
 
+        function transformClassWatchDeclaration(
+            watchers: ReadonlyArray<ClassWatchDeclaration>
+        ): ts.ExpressionStatement[] {
+            return watchers.map(watcher =>
+                ts.createExpressionStatement(
+                    ts.createCall(ts.createIdentifier('watch'), undefined, [
+                        ts.createIdentifier(
+                            cast(
+                                first(
+                                    cast(
+                                        watcher.decorators.find(
+                                            isWatchDecorator
+                                        )!.expression,
+                                        ts.isCallExpression
+                                    ).arguments
+                                ),
+                                ts.isStringLiteral
+                            ).text
+                        ),
+                        ts.createArrowFunction(
+                            undefined,
+                            undefined,
+                            watcher.parameters,
+                            undefined,
+                            ts.createToken(
+                                ts.SyntaxKind.EqualsGreaterThanToken
+                            ),
+                            ts.visitEachChild(watcher.body, visitor, context)
+                        )
+                    ])
+                )
+            );
+        }
+
         function transformClassDeclarationReturn<T extends IdentifierName>(
             nodes: T[]
         ): ts.ReturnStatement {
@@ -561,6 +619,7 @@ function classTransformer(
                 states,
                 props,
                 methods,
+                watchers,
                 lifecycles,
                 ignored
             } = collectClassDeclarationInfo(node);
@@ -594,6 +653,9 @@ function classTransformer(
                                                 ),
                                                 ...transformClassLifeCycleDeclaration(
                                                     lifecycles
+                                                ),
+                                                ...transformClassWatchDeclaration(
+                                                    watchers
                                                 ),
                                                 transformClassDeclarationReturn(
                                                     [
