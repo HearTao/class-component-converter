@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import { some, append } from './utils';
+import { some, append, not } from './utils';
 import createVHost from './host';
 
 function isVueClass(type: ts.ExpressionWithTypeArguments): boolean {
@@ -45,6 +45,24 @@ function propertyAccessNeedTransform(
         }
     }
     return false;
+}
+
+function skipParent(node: ts.Expression): ts.Expression {
+    while (node && ts.isParenthesizedExpression(node)) {
+        node = node.expression;
+    }
+    return node;
+}
+
+function variableNeedTransform(node: ts.VariableDeclaration): boolean {
+    return !!(
+        node.initializer &&
+        ts.isObjectBindingPattern(node.name) &&
+        skipParent(node.initializer).kind === ts.SyntaxKind.ThisKeyword)
+}
+
+function variableStatementNeedTransform(stmt: ts.VariableStatement): boolean {
+    return stmt.declarationList.declarations.some(variableNeedTransform);
 }
 
 function isClassStateDeclaration(
@@ -472,6 +490,16 @@ function transformPropertyAccessExpression(
     return ts.createPropertyAccess(node.name, ts.createIdentifier('value'));
 }
 
+function transformVariableStatement(node: ts.VariableStatement): ts.Node {
+    const newDeclList = node.declarationList.declarations.filter(not(variableNeedTransform))
+    return newDeclList.length ? ts.createVariableStatement(
+        node.modifiers,
+        ts.createVariableDeclarationList(
+            newDeclList
+        )
+    ) : ts.createEmptyStatement()
+}
+
 function classTransformer(
     checker: ts.TypeChecker
 ): ts.TransformerFactory<ts.SourceFile> {
@@ -481,8 +509,12 @@ function classTransformer(
                 case ts.SyntaxKind.ClassDeclaration:
                     return classDeclarationVisitor(node as ts.ClassDeclaration);
                 case ts.SyntaxKind.PropertyAccessExpression:
-                    return PropertyAccessExpressionVisitor(
+                    return propertyAccessExpressionVisitor(
                         node as ts.PropertyAccessExpression
+                    );
+                case ts.SyntaxKind.VariableStatement:
+                    return variableStatementVisitor(
+                        node as ts.VariableStatement
                     );
                 default:
                     return ts.visitEachChild(node, visitor, context);
@@ -501,12 +533,25 @@ function classTransformer(
             return ts.visitEachChild(declaration, visitor, context);
         }
 
-        function PropertyAccessExpressionVisitor(
+        function propertyAccessExpressionVisitor(
             declaration: ts.PropertyAccessExpression
         ) {
             if (propertyAccessNeedTransform(declaration, checker)) {
                 return ts.visitEachChild(
                     transformPropertyAccessExpression(declaration),
+                    visitor,
+                    context
+                );
+            }
+            return ts.visitEachChild(declaration, visitor, context);
+        }
+
+        function variableStatementVisitor(
+            declaration: ts.VariableStatement
+        ) {
+            if (variableStatementNeedTransform(declaration)) {
+                return ts.visitEachChild(
+                    transformVariableStatement(declaration),
                     visitor,
                     context
                 );

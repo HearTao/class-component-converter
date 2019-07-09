@@ -22,7 +22,14 @@ export default class YourComponent extends Vue {
     }
 
     hehe() {
+        this.data1++
+        console.log(this.data1, this.propsA)
+    }
 
+    fooo () {
+        const { propsA, data1, data2, what, why, hehe } = this
+
+        console.log(propsA, data1, data2, what, why, hehe)
     }
 
     mounted () {
