@@ -31,17 +31,20 @@ function classNeedTransform(node: ts.ClassLikeDeclaration): boolean {
     );
 }
 
-function propertyAccessNeedTransform(node: ts.PropertyAccessExpression, checker: ts.TypeChecker): boolean {
+function propertyAccessNeedTransform(
+    node: ts.PropertyAccessExpression,
+    checker: ts.TypeChecker
+): boolean {
     if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
-        const symbol = checker.getSymbolAtLocation(node.name)
+        const symbol = checker.getSymbolAtLocation(node.name);
         if (symbol && symbol.valueDeclaration) {
-            const property = symbol.valueDeclaration
+            const property = symbol.valueDeclaration;
             if (ts.isPropertyDeclaration(property)) {
-                return classNeedTransform(property.parent)
+                return classNeedTransform(property.parent);
             }
         }
     }
-    return false
+    return false;
 }
 
 function isClassStateDeclaration(
@@ -331,7 +334,7 @@ function transformClassComputedDeclaration(
 }
 
 function transformClassLifeCycleName(name: string): string {
-    return `on${name[0].toUpperCase()}${name.slice(1)}`
+    return `on${name[0].toUpperCase()}${name.slice(1)}`;
 }
 
 function transformClassLifeCycleDeclaration(
@@ -388,6 +391,16 @@ function transformClassMethodDeclaration(
     );
 }
 
+function transformClassDeclarationReturn<T extends IdentifierName>(
+    nodes: T[]
+): ts.ReturnStatement {
+    return ts.createReturn(
+        ts.createObjectLiteral(
+            nodes.map(node => ts.createShorthandPropertyAssignment(node.name))
+        )
+    );
+}
+
 function transformClassDeclaration(
     node: ts.ClassDeclaration
 ): ts.VariableStatement {
@@ -430,7 +443,16 @@ function transformClassDeclaration(
                                         ),
                                         ...transformClassLifeCycleDeclaration(
                                             lifecycles
-                                        )
+                                        ),
+                                        transformClassDeclarationReturn([
+                                            ...states,
+                                            ...methods,
+                                            ...Array.from(computed.keys()).map(
+                                                x => ({
+                                                    name: ts.createIdentifier(x)
+                                                })
+                                            )
+                                        ])
                                     ])
                                 )
                             ],
@@ -444,18 +466,24 @@ function transformClassDeclaration(
     );
 }
 
-function transformPropertyAccessExpression (node: ts.PropertyAccessExpression): ts.Node {
-    return node.name
+function transformPropertyAccessExpression(
+    node: ts.PropertyAccessExpression
+): ts.Node {
+    return ts.createPropertyAccess(node.name, ts.createIdentifier('value'));
 }
 
-function classTransformer(checker: ts.TypeChecker): ts.TransformerFactory<ts.SourceFile> {
+function classTransformer(
+    checker: ts.TypeChecker
+): ts.TransformerFactory<ts.SourceFile> {
     return context => {
         const visitor: ts.Visitor = node => {
             switch (node.kind) {
                 case ts.SyntaxKind.ClassDeclaration:
                     return classDeclarationVisitor(node as ts.ClassDeclaration);
                 case ts.SyntaxKind.PropertyAccessExpression:
-                    return PropertyAccessExpressionVisitor(node as ts.PropertyAccessExpression)
+                    return PropertyAccessExpressionVisitor(
+                        node as ts.PropertyAccessExpression
+                    );
                 default:
                     return ts.visitEachChild(node, visitor, context);
             }
@@ -473,7 +501,9 @@ function classTransformer(checker: ts.TypeChecker): ts.TransformerFactory<ts.Sou
             return ts.visitEachChild(declaration, visitor, context);
         }
 
-        function PropertyAccessExpressionVisitor(declaration: ts.PropertyAccessExpression) {
+        function PropertyAccessExpressionVisitor(
+            declaration: ts.PropertyAccessExpression
+        ) {
             if (propertyAccessNeedTransform(declaration, checker)) {
                 return ts.visitEachChild(
                     transformPropertyAccessExpression(declaration),
@@ -487,24 +517,25 @@ function classTransformer(checker: ts.TypeChecker): ts.TransformerFactory<ts.Sou
 }
 
 export function convert(code: string): string {
-    const host = createVHost()
+    const host = createVHost();
 
-    const filename = 'mod.tsx'
-    host.writeFile(filename, code, false)
+    const filename = 'mod.tsx';
+    host.writeFile(filename, code, false);
 
-    const program = ts.createProgram([filename], {
-        jsx: ts.JsxEmit.Preserve,
-        experimentalDecorators: true,
-        target: ts.ScriptTarget.Latest
-    }, host)
-
-    const checker = program.getTypeChecker()
-    const sourceFile = program.getSourceFile(filename)
-
-    const result = ts.transform(
-        sourceFile!,
-        [classTransformer(checker)],
+    const program = ts.createProgram(
+        [filename],
+        {
+            jsx: ts.JsxEmit.Preserve,
+            experimentalDecorators: true,
+            target: ts.ScriptTarget.Latest
+        },
+        host
     );
+
+    const checker = program.getTypeChecker();
+    const sourceFile = program.getSourceFile(filename);
+
+    const result = ts.transform(sourceFile!, [classTransformer(checker)]);
 
     const printer = ts.createPrinter();
     const newCode = printer.printFile(result.transformed[0]);
