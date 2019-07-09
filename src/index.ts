@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import { some, append, not } from './utils';
+import { some, append, not, or, cast } from './utils';
 import createVHost from './host';
 
 function isVueClass(type: ts.ExpressionWithTypeArguments): boolean {
@@ -31,39 +31,11 @@ function classNeedTransform(node: ts.ClassLikeDeclaration): boolean {
     );
 }
 
-function propertyAccessNeedTransform(
-    node: ts.PropertyAccessExpression,
-    checker: ts.TypeChecker
-): boolean {
-    if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
-        const symbol = checker.getSymbolAtLocation(node);
-        if (symbol && symbol.valueDeclaration) {
-            const property = symbol.valueDeclaration;
-            if (ts.isPropertyDeclaration(property)) {
-                return classNeedTransform(property.parent);
-            }
-        }
-    }
-    return false;
-}
-
 function skipParent(node: ts.Expression): ts.Expression {
     while (node && ts.isParenthesizedExpression(node)) {
         node = node.expression;
     }
     return node;
-}
-
-function variableNeedTransform(node: ts.VariableDeclaration): boolean {
-    return !!(
-        node.initializer &&
-        ts.isObjectBindingPattern(node.name) &&
-        skipParent(node.initializer).kind === ts.SyntaxKind.ThisKeyword
-    );
-}
-
-function variableStatementNeedTransform(stmt: ts.VariableStatement): boolean {
-    return stmt.declarationList.declarations.some(variableNeedTransform);
 }
 
 function isClassStateDeclaration(
@@ -247,6 +219,15 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
         lifecycles,
         ignored
     };
+}
+
+enum VairableReference {
+    Out,
+    Props,
+    State,
+    Computed,
+    Method,
+    LifeCycle
 }
 
 const stateIdentifier = 'value';
@@ -485,22 +466,8 @@ function transformClassDeclaration(
     );
 }
 
-function transformPropertyAccessExpression(
-    node: ts.PropertyAccessExpression
-): ts.Node {
-    return ts.createPropertyAccess(node.name, ts.createIdentifier('value'));
-}
-
-function transformVariableStatement(node: ts.VariableStatement): ts.Node {
-    const newDeclList = node.declarationList.declarations.filter(
-        not(variableNeedTransform)
-    );
-    return newDeclList.length
-        ? ts.createVariableStatement(
-              node.modifiers,
-              ts.createVariableDeclarationList(newDeclList)
-          )
-        : ts.createEmptyStatement();
+function isLeftHandSideOfVariableDeclaration(node: ts.Identifier) {
+    return node.parent && ts.isVariableDeclaration(node.parent) && node.parent.name === node
 }
 
 function classTransformer(
@@ -511,14 +478,6 @@ function classTransformer(
             switch (node.kind) {
                 case ts.SyntaxKind.ClassDeclaration:
                     return classDeclarationVisitor(node as ts.ClassDeclaration);
-                case ts.SyntaxKind.PropertyAccessExpression:
-                    return propertyAccessExpressionVisitor(
-                        node as ts.PropertyAccessExpression
-                    );
-                case ts.SyntaxKind.VariableStatement:
-                    return variableStatementVisitor(
-                        node as ts.VariableStatement
-                    );
                 default:
                     return ts.visitEachChild(node, visitor, context);
             }
@@ -529,30 +488,6 @@ function classTransformer(
             if (classNeedTransform(declaration)) {
                 return ts.visitEachChild(
                     transformClassDeclaration(declaration),
-                    visitor,
-                    context
-                );
-            }
-            return ts.visitEachChild(declaration, visitor, context);
-        }
-
-        function propertyAccessExpressionVisitor(
-            declaration: ts.PropertyAccessExpression
-        ) {
-            if (propertyAccessNeedTransform(declaration, checker)) {
-                return ts.visitEachChild(
-                    transformPropertyAccessExpression(declaration),
-                    visitor,
-                    context
-                );
-            }
-            return ts.visitEachChild(declaration, visitor, context);
-        }
-
-        function variableStatementVisitor(declaration: ts.VariableStatement) {
-            if (variableStatementNeedTransform(declaration)) {
-                return ts.visitEachChild(
-                    transformVariableStatement(declaration),
                     visitor,
                     context
                 );
