@@ -1,6 +1,6 @@
 import * as ts from 'typescript';
 import { some, append } from './utils';
-import { getCompileHost } from './host';
+import createVHost from './host';
 
 function isVueClass(type: ts.ExpressionWithTypeArguments): boolean {
     return ts.isIdentifier(type.expression) && type.expression.text === 'Vue';
@@ -487,7 +487,7 @@ function classTransformer(checker: ts.TypeChecker): ts.TransformerFactory<ts.Sou
 }
 
 export function convert(code: string): string {
-    const host = getCompileHost()
+    const host = createVHost()
 
     const filename = 'mod.tsx'
     host.writeFile(filename, code, false)
