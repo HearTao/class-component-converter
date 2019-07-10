@@ -4,84 +4,6 @@
 
 class-component-converter is a transformer to convert your Vue component to Vue functional api.
 
-## TODO:
-
-- [x] Full Vue feature support
-    <details>
-    - [x] data
-    - [x] props
-    - [x] computed
-    - [x] methods
-    - [x] lifecycle
-    - [x] emits
-    - [x] slots
-    - [x] ref
-    - [x] provide / inject
-    - [x] watch
-    - [x] render
-    </details>
-
-- [ ] Vue instance transform
-    <details>
-    - [ ] Decorator arguments
-    - [x] Wrapper value
-    - [ ] Wrapper value fold
-    - [x] Property access
-    - [ ] Destruction
-    - [ ] Emits to callback
-    - [ ] Listeners to callback
-    - [ ] Slots to callack
-    - [ ] Re-order declarations
-    </details>
-
-- [ ] RFC support
-    <details>
-    - [x] vue-function-api
-    - [ ] vue-next
-    </details>
-
-- [ ] Better TypeScript support
-    <details>
-    - [x] Compiler Host
-    - [ ] JavaScript support
-    - [ ] Type annotation transform
-    </details>
-
-- [ ] External libs support
-    <details>
-    - [ ] raw vue
-    - [ ] vue-class-component
-    - [x] vue-property-decorator
-    - [ ] vue-tsx-support
-    </details>
-
-- [ ] Vuex & Vue router support
-    <details>
-    - [ ] vuex
-    - [ ] vue-router
-    - [ ] vuex-class
-    </details>
-
-- [ ] Vue file support
-    <details>
-    - [ ] Template SFC
-    - [ ] Tsx
-    </details>
-
-- [ ] Usages
-    <details>
-    - [ ] Cli
-    - [ ] Libs
-    </details>
-
-- [ ] DevOps
-    <details>
-    - [ ] Tests
-    - [ ] Codecov
-    - [ ] CI
-    - [ ] Lint && Prettier
-    </details>
-
 ## Example
 
 ### Before
@@ -227,3 +149,99 @@ const YourComponent = {
   }
 };
 ```
+
+## TODO:
+
+- [x] Full Vue feature support
+    <details>
+    
+    - [x] data
+    - [x] props
+    - [x] computed
+    - [x] methods
+    - [x] lifecycle
+    - [x] emits
+    - [x] slots
+    - [x] ref
+    - [x] provide / inject
+    - [x] watch
+    - [x] render
+    
+    </details>
+
+- [ ] Vue instance transform
+    <details>
+    
+    - [ ] Decorator arguments
+    - [x] Wrapper value
+    - [ ] Wrapper value fold
+    - [x] Property access
+    - [ ] Destruction
+    - [ ] Emits to callback
+    - [ ] Listeners to callback
+    - [ ] Slots to callack
+    - [ ] Re-order declarations
+    
+    </details>
+
+- [ ] RFC support
+    <details>
+    
+    - [x] vue-function-api
+    - [ ] vue-next
+    
+    </details>
+
+- [ ] Better TypeScript support
+    <details>
+    
+    - [x] Compiler Host
+    - [ ] JavaScript support
+    - [ ] Type annotation transform
+    
+    </details>
+
+- [ ] External libs support
+    <details>
+    
+    - [ ] raw vue
+    - [ ] vue-class-component
+    - [x] vue-property-decorator
+    - [ ] vue-tsx-support
+    
+    </details>
+
+- [ ] Vuex & Vue router support
+    <details>
+    
+    - [ ] vuex
+    - [ ] vue-router
+    - [ ] vuex-class
+    
+    </details>
+
+- [ ] Vue file support
+    <details>
+    
+    - [ ] Template SFC
+    - [ ] Tsx
+    
+    </details>
+
+- [ ] Usages
+    <details>
+    
+    - [ ] Cli
+    - [ ] Libs
+    
+    </details>
+
+- [ ] DevOps
+    <details>
+    
+    - [ ] Tests
+    - [ ] Codecov
+    - [ ] CI
+    - [ ] Lint && Prettier
+    
+    </details>
