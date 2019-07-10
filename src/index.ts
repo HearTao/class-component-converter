@@ -1,5 +1,15 @@
 import * as ts from 'typescript';
-import { some, append, not, or, cast, first } from './utils';
+import {
+    some,
+    append,
+    not,
+    or,
+    cast,
+    first,
+    assertDef,
+    pickOut,
+    isDef
+} from './utils';
 import createVHost from './host';
 
 function isVueClass(type: ts.ExpressionWithTypeArguments): boolean {
@@ -25,6 +35,30 @@ function isWatchDecorator(expr: ts.Decorator): boolean {
         ts.isCallExpression(expr.expression) &&
         ts.isIdentifier(expr.expression.expression) &&
         expr.expression.expression.text === 'Watch'
+    );
+}
+
+function isEmitDecorator(expr: ts.Decorator): boolean {
+    return (
+        ts.isCallExpression(expr.expression) &&
+        ts.isIdentifier(expr.expression.expression) &&
+        expr.expression.expression.text === 'Emit'
+    );
+}
+
+function isProviderDecorator(expr: ts.Decorator): boolean {
+    return (
+        ts.isCallExpression(expr.expression) &&
+        ts.isIdentifier(expr.expression.expression) &&
+        expr.expression.expression.text === 'Provide'
+    );
+}
+
+function isInjectionDecorator(expr: ts.Decorator): boolean {
+    return (
+        ts.isCallExpression(expr.expression) &&
+        ts.isIdentifier(expr.expression.expression) &&
+        expr.expression.expression.text === 'Inject'
     );
 }
 
@@ -157,12 +191,42 @@ function isClassWatchDeclaration(
     );
 }
 
+function isClassEemitDeclaration(
+    node: ts.ClassElement
+): node is ClassEmitDeclaration {
+    return (
+        ts.isMethodDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        some(node.decorators, isEmitDecorator)
+    );
+}
+
 function isClassPropDeclaration(
     node: ts.ClassElement
 ): node is ClassPropDeclaration {
     return (
         ts.isPropertyDeclaration(node) &&
         some(node.decorators, isPropsDecorator) &&
+        ts.isIdentifier(node.name)
+    );
+}
+
+function isClassProviderDeclaration(
+    node: ts.ClassElement
+): node is ClassProviderDeclaration {
+    return (
+        ts.isPropertyDeclaration(node) &&
+        some(node.decorators, isProviderDecorator) &&
+        ts.isIdentifier(node.name)
+    );
+}
+
+function isClassInjectionDeclaration(
+    node: ts.ClassElement
+): node is ClassInjectDeclaration {
+    return (
+        ts.isPropertyDeclaration(node) &&
+        some(node.decorators, isInjectionDecorator) &&
         ts.isIdentifier(node.name)
     );
 }
@@ -208,7 +272,16 @@ type IdentifierName = { name: ts.Identifier };
 type Decorators = { decorators: ReadonlyArray<ts.Decorator> };
 
 type ClassStateDeclaration = ts.PropertyDeclaration & IdentifierName;
-type ClassPropDeclaration = ts.PropertyDeclaration & IdentifierName;
+type ClassPropDeclaration = ts.PropertyDeclaration &
+    IdentifierName &
+    Decorators;
+type ClassProviderDeclaration = ts.PropertyDeclaration &
+    IdentifierName &
+    Decorators;
+type ClassInjectDeclaration = ts.PropertyDeclaration &
+    IdentifierName &
+    Decorators;
+
 type ClassLifeCycleDeclaration = ts.MethodDeclaration &
     IdentifierName &
     BodyDeclaration<ts.MethodDeclaration>;
@@ -216,6 +289,10 @@ type ClassMethodDeclaration = ts.MethodDeclaration &
     IdentifierName &
     BodyDeclaration<ts.MethodDeclaration>;
 type ClassWatchDeclaration = ts.MethodDeclaration &
+    IdentifierName &
+    Decorators &
+    BodyDeclaration<ts.MethodDeclaration>;
+type ClassEmitDeclaration = ts.MethodDeclaration &
     IdentifierName &
     Decorators &
     BodyDeclaration<ts.MethodDeclaration>;
@@ -247,9 +324,12 @@ interface ComponentInfo {
     states: ClassStateDeclaration[];
     props: ClassPropDeclaration[];
     methods: ClassMethodDeclaration[];
+    emits: ClassEmitDeclaration[];
     watchers: ClassWatchDeclaration[];
     lifecycles: ClassLifeCycleDeclaration[];
     ignored: ts.ClassElement[];
+    providers: ClassProviderDeclaration[];
+    injections: ClassInjectDeclaration[];
 }
 
 function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
@@ -258,8 +338,11 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
     const states: ClassStateDeclaration[] = [];
     const props: ClassPropDeclaration[] = [];
     const methods: ClassMethodDeclaration[] = [];
+    const emits: ClassEmitDeclaration[] = [];
     const watchers: ClassWatchDeclaration[] = [];
     const lifecycles: ClassLifeCycleDeclaration[] = [];
+    const providers: ClassProviderDeclaration[] = [];
+    const injections: ClassInjectDeclaration[] = [];
     const ignored: ts.ClassElement[] = [];
 
     node.members.forEach(member => {
@@ -269,6 +352,10 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
                     states.push(member);
                 } else if (isClassPropDeclaration(member)) {
                     props.push(member);
+                } else if (isClassProviderDeclaration(member)) {
+                    providers.push(member);
+                } else if (isClassInjectionDeclaration(member)) {
+                    injections.push(member);
                 } else {
                     ignored.push(member);
                 }
@@ -295,6 +382,8 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
                     render = member;
                 } else if (isClassWatchDeclaration(member)) {
                     watchers.push(member);
+                } else if (isClassEemitDeclaration(member)) {
+                    emits.push(member);
                 } else if (isClassLifeCycleDeclaration(member)) {
                     lifecycles.push(member);
                 } else if (isClassMethodDeclaration(member)) {
@@ -314,8 +403,11 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
         states,
         props,
         methods,
+        emits,
         watchers,
         lifecycles,
+        providers,
+        injections,
         ignored
     };
 }
@@ -617,16 +709,122 @@ function classTransformer(
             );
         }
 
-        function transformClassDeclarationReturn<T extends IdentifierName>(
-            nodes: T[]
-        ): ts.ReturnStatement {
-            return ts.createReturn(
-                ts.createObjectLiteral(
-                    nodes.map(node =>
-                        ts.createShorthandPropertyAssignment(node.name)
+        function transformClassEmitDeclaration(
+            emits: ReadonlyArray<ClassEmitDeclaration>
+        ): ts.VariableStatement[] {
+            return emits.map(emit => {
+                const parameters = emit.parameters;
+                const body = ts.visitEachChild(emit.body, visitor, context);
+                const stmts: ReadonlyArray<ts.Statement> = body
+                    ? body.statements
+                    : [];
+                const [returnArgs, others] = pickOut(
+                    stmts,
+                    ts.isReturnStatement
+                );
+                const args = [
+                    ts.createStringLiteral(emit.name.text),
+                    ...returnArgs.map(x => x.expression).filter(isDef),
+                    ...parameters.map(x => x.name).filter(ts.isIdentifier)
+                ];
+                return ts.createVariableStatement(
+                    undefined,
+                    ts.createVariableDeclarationList(
+                        [
+                            ts.createVariableDeclaration(
+                                emit.name,
+                                undefined,
+                                ts.createArrowFunction(
+                                    undefined,
+                                    undefined,
+                                    parameters,
+                                    undefined,
+                                    ts.createToken(
+                                        ts.SyntaxKind.EqualsGreaterThanToken
+                                    ),
+                                    ts.createBlock([
+                                        ...others,
+                                        ts.createExpressionStatement(
+                                            ts.createCall(
+                                                ts.createPropertyAccess(
+                                                    ts.createIdentifier(
+                                                        'context'
+                                                    ),
+                                                    ts.createIdentifier('$emit')
+                                                ),
+                                                undefined,
+                                                args
+                                            )
+                                        )
+                                    ])
+                                )
+                            )
+                        ],
+                        ts.NodeFlags.Const
+                    )
+                );
+            });
+        }
+
+        function transformClassProviderDeclaration(
+            providers: ReadonlyArray<ClassProviderDeclaration>
+        ): ts.ExpressionStatement[] {
+            return [
+                ts.createExpressionStatement(
+                    ts.createCall(ts.createIdentifier('provide'), undefined, [
+                        ts.createObjectLiteral(
+                            providers.map(provider =>
+                                ts.createPropertyAssignment(
+                                    provider.name,
+                                    ts.visitEachChild(
+                                        assertDef(provider.initializer),
+                                        visitor,
+                                        context
+                                    )
+                                )
+                            )
+                        )
+                    ])
+                )
+            ];
+        }
+
+        function transformClassInjectionDeclaration(
+            injections: ReadonlyArray<ClassInjectDeclaration>
+        ): ts.VariableStatement[] {
+            return injections.map(injection =>
+                ts.createVariableStatement(
+                    undefined,
+                    ts.createVariableDeclarationList(
+                        [
+                            ts.createVariableDeclaration(
+                                injection.name,
+                                injection.type,
+                                ts.createCall(
+                                    ts.createIdentifier('inject'),
+                                    undefined,
+                                    [injection.name]
+                                )
+                            )
+                        ],
+                        ts.NodeFlags.Const
                     )
                 )
             );
+        }
+
+        function transformClassDeclarationReturn<T extends IdentifierName>(
+            nodes: T[]
+        ): [ts.ReturnStatement] {
+            return [
+                ts.createReturn(
+                    ts.createObjectLiteral(
+                        nodes.map(node =>
+                            ts.createShorthandPropertyAssignment(node.name)
+                        )
+                    )
+                )
+            ];
         }
 
         function transformClassDeclaration(
@@ -638,8 +836,11 @@ function classTransformer(
                 states,
                 props,
                 methods,
+                emits,
                 watchers,
                 lifecycles,
+                providers,
+                injections,
                 ignored
             } = collectClassDeclarationInfo(node);
 
@@ -679,7 +880,16 @@ function classTransformer(
                                                 ...transformClassWatchDeclaration(
                                                     watchers
                                                 ),
-                                                transformClassDeclarationReturn(
+                                                ...transformClassEmitDeclaration(
+                                                    emits
+                                                ),
+                                                ...transformClassProviderDeclaration(
+                                                    providers
+                                                ),
+                                                ...transformClassInjectionDeclaration(
+                                                    injections
+                                                ),
+                                                ...transformClassDeclarationReturn(
                                                     [
                                                         ...states,
                                                         ...methods,

@@ -47,3 +47,26 @@ export function first<T>(items: ReadonlyArray<T>): T {
     }
     return items[0];
 }
+
+export function assertDef<T>(v: T | undefined): T {
+    if (!isDef(v)) {
+        throw new Error('must be defined');
+    }
+    return v;
+}
+
+export function pickOut<T, U extends T>(
+    items: ReadonlyArray<T>,
+    cb: (v: T) => v is U
+): [U[], T[]] {
+    const r1: T[] = [];
+    const r2: U[] = [];
+    items.forEach(x => {
+        if (cb(x)) {
+            r2.push(x);
+        } else {
+            r1.push(x);
+        }
+    });
+    return [r2, r1];
+}
