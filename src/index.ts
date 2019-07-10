@@ -44,6 +44,13 @@ function propertyAccessNeedTransform(
     checker: ts.TypeChecker
 ): boolean {
     if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
+        if (
+            node.name.text === '$emit' ||
+            node.name.text === '$refs' ||
+            node.name.text === '$slots'
+        ) {
+            return true;
+        }
         const symbol = checker.getSymbolAtLocation(node);
         if (
             symbol &&
@@ -436,6 +443,18 @@ function classTransformer(
             );
         }
 
+        function transformInstanceMethods() {
+            return ts.createParameter(
+                undefined,
+                undefined,
+                undefined,
+                ts.createIdentifier('context'),
+                undefined,
+                undefined,
+                undefined
+            );
+        }
+
         function transformClassComputedDeclaration(
             computed: Map<string, ClassComputedDeclaration>
         ): ts.VariableStatement[] {
@@ -641,7 +660,10 @@ function classTransformer(
                                             'steup',
                                             undefined,
                                             undefined,
-                                            [transformClassProps(props)],
+                                            [
+                                                transformClassProps(props),
+                                                transformInstanceMethods()
+                                            ],
                                             undefined,
                                             ts.createBlock([
                                                 ...transformClassStates(states),
@@ -688,6 +710,16 @@ function classTransformer(
             checker: ts.TypeChecker
         ): ts.Node {
             if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
+                if (
+                    node.name.text === '$emit' ||
+                    node.name.text === '$refs' ||
+                    node.name.text === '$slots'
+                ) {
+                    return ts.createPropertyAccess(
+                        ts.createIdentifier('context'),
+                        node.name
+                    );
+                }
                 const symbol = checker.getSymbolAtLocation(node);
                 if (
                     symbol &&

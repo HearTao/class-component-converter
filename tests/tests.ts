@@ -24,6 +24,8 @@ export default class YourComponent extends Vue {
     hehe() {
         this.data1++
         console.log(this.data1, this.propsA)
+
+        this.$emit('123', this.data1)
     }
 
     fooo () {
@@ -40,6 +42,9 @@ export default class YourComponent extends Vue {
     }
 
     mounted () {
+        if (this.$slots.default) {
+            this.$slots.defalult(this.$refs.node)
+        }
         console.log(123)
     }
 }
