@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import { some, append, not, or, cast, first, assertDef } from './utils';
+import { some, append, not, or, cast, first, assertDef, pickOut, isDef } from './utils';
 import createVHost from './host';
 
 function isVueClass(type: ts.ExpressionWithTypeArguments): boolean {
@@ -649,17 +649,14 @@ function classTransformer(
         ): ts.VariableStatement[] {
             return emits.map(emit => {
                 const parameters = emit.parameters;
-                const body = ts.visitEachChild(emit.body, visitor, context)
-                    .body;
+                const body = ts.visitEachChild(emit.body, visitor, context);
                 const stmts: ReadonlyArray<ts.Statement> = body
                     ? body.statements
                     : [];
-                const returnArgs = stmts.find(ts.isReturnStatement);
+                const [returnArgs, others] = pickOut(stmts, ts.isReturnStatement);
                 const args = [
                     ts.createStringLiteral(emit.name.text),
-                    ...(returnArgs && returnArgs.expression
-                        ? [returnArgs.expression]
-                        : []),
+                    ...returnArgs.map(x => x.expression).filter(isDef),
                     ...parameters.map(x => x.name).filter(ts.isIdentifier)
                 ];
                 return ts.createVariableStatement(
@@ -678,7 +675,7 @@ function classTransformer(
                                         ts.SyntaxKind.EqualsGreaterThanToken
                                     ),
                                     ts.createBlock([
-                                        ...stmts,
+                                        ...others,
                                         ts.createExpressionStatement(
                                             ts.createCall(
                                                 ts.createPropertyAccess(

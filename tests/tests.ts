@@ -7,13 +7,18 @@ export default class YourComponent extends Vue {
     @Prop(Number) readonly propsA: number | undefined
 
     @Emit()
-    test () { }
+    test () {
+        this.data1++
+    }
 
     @Emit()
-    test1 (v: number) { }
+    test1 (v: number) {
+        this.data1++
+    }
 
     @Emit()
     test2 (v: number) {
+        this.data1++
         return v + 1
     }
 

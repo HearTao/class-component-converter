@@ -24,8 +24,8 @@ class-component-converter is a transformer to convert your Vue component to Vue 
     - [ ] Wrapper value fold
     - [x] Property access
     - [ ] Destruction
-    - [ ] Emit
-    - [ ] Tsx Event to callback
+    - [ ] Emits to callback
+    - [ ] Listeners to callback
     - [ ] Slots to callack
 
 - RFC support
