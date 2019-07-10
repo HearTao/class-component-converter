@@ -47,3 +47,10 @@ export function first<T>(items: ReadonlyArray<T>): T {
     }
     return items[0];
 }
+
+export function assertDef<T>(v: T | undefined): T {
+    if (!isDef(v)) {
+        throw new Error('must be defined');
+    }
+    return v;
+}

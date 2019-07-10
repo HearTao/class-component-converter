@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import { some, append, not, or, cast, first } from './utils';
+import { some, append, not, or, cast, first, assertDef } from './utils';
 import createVHost from './host';
 
 function isVueClass(type: ts.ExpressionWithTypeArguments): boolean {
@@ -25,6 +25,14 @@ function isWatchDecorator(expr: ts.Decorator): boolean {
         ts.isCallExpression(expr.expression) &&
         ts.isIdentifier(expr.expression.expression) &&
         expr.expression.expression.text === 'Watch'
+    );
+}
+
+function isEmitDecorator(expr: ts.Decorator): boolean {
+    return (
+        ts.isCallExpression(expr.expression) &&
+        ts.isIdentifier(expr.expression.expression) &&
+        expr.expression.expression.text === 'Emit'
     );
 }
 
@@ -157,6 +165,16 @@ function isClassWatchDeclaration(
     );
 }
 
+function isClassEemitDeclaration(
+    node: ts.ClassElement
+): node is ClassEmitDeclaration {
+    return (
+        ts.isMethodDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        some(node.decorators, isEmitDecorator)
+    );
+}
+
 function isClassPropDeclaration(
     node: ts.ClassElement
 ): node is ClassPropDeclaration {
@@ -219,6 +237,10 @@ type ClassWatchDeclaration = ts.MethodDeclaration &
     IdentifierName &
     Decorators &
     BodyDeclaration<ts.MethodDeclaration>;
+type ClassEmitDeclaration = ts.MethodDeclaration &
+    IdentifierName &
+    Decorators &
+    BodyDeclaration<ts.MethodDeclaration>;
 
 type BodyDeclaration<
     T extends ts.AccessorDeclaration | ts.MethodDeclaration
@@ -247,6 +269,7 @@ interface ComponentInfo {
     states: ClassStateDeclaration[];
     props: ClassPropDeclaration[];
     methods: ClassMethodDeclaration[];
+    emits: ClassEmitDeclaration[];
     watchers: ClassWatchDeclaration[];
     lifecycles: ClassLifeCycleDeclaration[];
     ignored: ts.ClassElement[];
@@ -258,6 +281,7 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
     const states: ClassStateDeclaration[] = [];
     const props: ClassPropDeclaration[] = [];
     const methods: ClassMethodDeclaration[] = [];
+    const emits: ClassEmitDeclaration[] = [];
     const watchers: ClassWatchDeclaration[] = [];
     const lifecycles: ClassLifeCycleDeclaration[] = [];
     const ignored: ts.ClassElement[] = [];
@@ -295,6 +319,8 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
                     render = member;
                 } else if (isClassWatchDeclaration(member)) {
                     watchers.push(member);
+                } else if (isClassEemitDeclaration(member)) {
+                    emits.push(member);
                 } else if (isClassLifeCycleDeclaration(member)) {
                     lifecycles.push(member);
                 } else if (isClassMethodDeclaration(member)) {
@@ -314,6 +340,7 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
         states,
         props,
         methods,
+        emits,
         watchers,
         lifecycles,
         ignored
@@ -617,6 +644,63 @@ function classTransformer(
             );
         }
 
+        function transformClassEmitDeclaration(
+            emits: ReadonlyArray<ClassEmitDeclaration>
+        ): ts.VariableStatement[] {
+            return emits.map(emit => {
+                const parameters = emit.parameters;
+                const body = ts.visitEachChild(emit.body, visitor, context)
+                    .body;
+                const stmts: ReadonlyArray<ts.Statement> = body
+                    ? body.statements
+                    : [];
+                const returnArgs = stmts.find(ts.isReturnStatement);
+                const args = [
+                    ts.createStringLiteral(emit.name.text),
+                    ...(returnArgs && returnArgs.expression
+                        ? [returnArgs.expression]
+                        : []),
+                    ...parameters.map(x => x.name).filter(ts.isIdentifier)
+                ];
+                return ts.createVariableStatement(
+                    undefined,
+                    ts.createVariableDeclarationList(
+                        [
+                            ts.createVariableDeclaration(
+                                emit.name,
+                                undefined,
+                                ts.createArrowFunction(
+                                    undefined,
+                                    undefined,
+                                    parameters,
+                                    undefined,
+                                    ts.createToken(
+                                        ts.SyntaxKind.EqualsGreaterThanToken
+                                    ),
+                                    ts.createBlock([
+                                        ...stmts,
+                                        ts.createExpressionStatement(
+                                            ts.createCall(
+                                                ts.createPropertyAccess(
+                                                    ts.createIdentifier(
+                                                        'context'
+                                                    ),
+                                                    ts.createIdentifier('$emit')
+                                                ),
+                                                undefined,
+                                                args
+                                            )
+                                        )
+                                    ])
+                                )
+                            )
+                        ],
+                        ts.NodeFlags.Const
+                    )
+                );
+            });
+        }
+
         function transformClassDeclarationReturn<T extends IdentifierName>(
             nodes: T[]
         ): ts.ReturnStatement {
@@ -638,6 +722,7 @@ function classTransformer(
                 states,
                 props,
                 methods,
+                emits,
                 watchers,
                 lifecycles,
                 ignored
@@ -678,6 +763,9 @@ function classTransformer(
                                                 ),
                                                 ...transformClassWatchDeclaration(
                                                     watchers
+                                                ),
+                                                ...transformClassEmitDeclaration(
+                                                    emits
                                                 ),
                                                 transformClassDeclarationReturn(
                                                     [

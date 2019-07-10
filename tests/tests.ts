@@ -6,6 +6,17 @@ const code = `
 export default class YourComponent extends Vue {
     @Prop(Number) readonly propsA: number | undefined
 
+    @Emit()
+    test () { }
+
+    @Emit()
+    test1 (v: number) { }
+
+    @Emit()
+    test2 (v: number) {
+        return v + 1
+    }
+
     data1 = 123
     data2 = 234
 
