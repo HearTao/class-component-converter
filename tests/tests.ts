@@ -22,6 +22,12 @@ export default class YourComponent extends Vue {
         return v + 1
     }
 
+    @Inject() readonly foo: string
+    @Inject('bar') readonly bar: string
+  
+    @Provide() provideFoo = 'foo'
+    @Provide('baz') provideBaz = 'baz'
+
     data1 = 123
     data2 = 234
 
@@ -35,6 +41,7 @@ export default class YourComponent extends Vue {
 
     set why (value) {
         this.data2 = value - 1
+        console.log(this.foo, this.bar, this.provideFoo, this.provideBaz)
     }
 
     hehe() {

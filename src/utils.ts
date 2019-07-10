@@ -55,15 +55,18 @@ export function assertDef<T>(v: T | undefined): T {
     return v;
 }
 
-export function pickOut<T, U extends T>(items: ReadonlyArray<T>, cb: (v: T) => v is U): [U[], T[]] {
-    const r1: T[] = []
-    const r2: U[] = []
+export function pickOut<T, U extends T>(
+    items: ReadonlyArray<T>,
+    cb: (v: T) => v is U
+): [U[], T[]] {
+    const r1: T[] = [];
+    const r2: U[] = [];
     items.forEach(x => {
         if (cb(x)) {
-            r2.push(x)
+            r2.push(x);
         } else {
-            r1.push(x)
+            r1.push(x);
         }
-    })
-    return [r2, r1]
+    });
+    return [r2, r1];
 }
