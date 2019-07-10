@@ -6,7 +6,7 @@ class-component-converter is a transformer to convert your Vue component to Vue 
 
 ## TODO:
 
-- Full Vue feature support
+- [x] Full Vue feature support
     - [x] data
     - [x] props
     - [x] computed
@@ -19,7 +19,7 @@ class-component-converter is a transformer to convert your Vue component to Vue 
     - [x] watch
     - [x] render
 
-- Vue instance transform
+- [ ] Vue instance transform
     - [ ] Decorator arguments
     - [x] Wrapper value
     - [ ] Wrapper value fold
@@ -29,35 +29,35 @@ class-component-converter is a transformer to convert your Vue component to Vue 
     - [ ] Listeners to callback
     - [ ] Slots to callack
 
-- RFC support
+- [ ] RFC support
     - [x] vue-function-api
     - [ ] vue-next
 
-- Better TypeScript support
+- [ ] Better TypeScript support
     - [x] Compiler Host
     - [ ] JavaScript support
     - [ ] Type annotation transform
 
-- External libs support
+- [ ] External libs support
     - [ ] raw vue
     - [ ] vue-class-component
     - [x] vue-property-decorator
     - [ ] vue-tsx-support
 
-- Vuex & Vue router support
+- [ ] Vuex & Vue router support
     - [ ] vuex
     - [ ] vue-router
     - [ ] vuex-class
 
-- Vue file support
+- [ ] Vue file support
     - [ ] Template SFC
     - [ ] Tsx
 
-- Usages
+- [ ] Usages
     - [ ] Cli
     - [ ] Libs
 
-- DevOps
+- [ ] DevOps
     - [ ] Tests
     - [ ] Codecov
     - [ ] CI
