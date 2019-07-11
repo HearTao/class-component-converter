@@ -11,6 +11,11 @@ export default class YourComponent extends Vue {
         this.data1++
     }
 
+    @Emit('testtest')
+    testt () {
+        this.data1++
+    }
+
     @Emit()
     test1 (v: number) {
         this.data1++
@@ -23,7 +28,7 @@ export default class YourComponent extends Vue {
     }
 
     @Inject() readonly foo: string
-    @Inject('bar') readonly bar: string
+    @Inject('bar') readonly injectionBar: string
   
     @Provide() provideFoo = 'foo'
     @Provide('baz') provideBaz = 'baz'

@@ -1,48 +1,70 @@
 export type IdentifierName = { name: ts.Identifier };
 export type Decorators = { decorators: ReadonlyArray<ts.Decorator> };
+export type Body = { body: ts.Block };
+export type Initializer = { initializer: ts.Expression };
+
+export type WithBody<T extends Partial<Body>> = T & Body;
+
+export type WithInitializer<T extends Partial<Initializer>> = T & Initializer;
 
 import * as ts from 'typescript';
 
-export type ClassStateDeclaration = ts.PropertyDeclaration & IdentifierName;
-export type ClassPropDeclaration = ts.PropertyDeclaration &
-    IdentifierName &
-    Decorators;
-export type ClassProviderDeclaration = ts.PropertyDeclaration &
-    IdentifierName &
-    Decorators;
-export type ClassInjectDeclaration = ts.PropertyDeclaration &
-    IdentifierName &
-    Decorators;
+export interface ClassStateDeclaration {
+    decl: ts.PropertyDeclaration;
+    name: ts.Identifier;
+}
 
-export type ClassLifeCycleDeclaration = ts.MethodDeclaration &
-    IdentifierName &
-    BodyDeclaration<ts.MethodDeclaration>;
-export type ClassMethodDeclaration = ts.MethodDeclaration &
-    IdentifierName &
-    BodyDeclaration<ts.MethodDeclaration>;
-export type ClassWatchDeclaration = ts.MethodDeclaration &
-    IdentifierName &
-    Decorators &
-    BodyDeclaration<ts.MethodDeclaration>;
-export type ClassEmitDeclaration = ts.MethodDeclaration &
-    IdentifierName &
-    Decorators &
-    BodyDeclaration<ts.MethodDeclaration>;
+export interface ClassPropDeclaration {
+    decl: ts.PropertyDeclaration;
+    name: ts.Identifier;
+}
 
-export type BodyDeclaration<
-    T extends ts.AccessorDeclaration | ts.MethodDeclaration
-> = { body: Pick<T, 'body'> };
-export type Getter = ts.GetAccessorDeclaration &
-    IdentifierName &
-    BodyDeclaration<ts.GetAccessorDeclaration>;
-export type Setter = ts.SetAccessorDeclaration &
-    IdentifierName &
-    BodyDeclaration<ts.SetAccessorDeclaration>;
+export interface ClassProviderDeclaration {
+    decl: WithInitializer<ts.PropertyDeclaration>;
+    name: ts.Identifier;
+}
+
+export interface ClassInjectDeclaration {
+    decl: ts.PropertyDeclaration;
+    name: ts.Identifier;
+}
+
+export interface ClassLifeCycleDeclaration {
+    decl: WithBody<ts.MethodDeclaration>;
+    name: ts.Identifier;
+}
+
+export interface ClassMethodDeclaration {
+    decl: WithBody<ts.MethodDeclaration>;
+    name: ts.Identifier;
+}
+
+export interface ClassWatchDeclaration {
+    decl: WithBody<ts.MethodDeclaration>;
+    name: ts.Identifier;
+    watch: string;
+}
+
+export interface ClassEmitDeclaration {
+    decl: WithBody<ts.MethodDeclaration>;
+    name: ts.Identifier;
+}
+
+export interface Getter {
+    decl: WithBody<ts.GetAccessorDeclaration>;
+    name: ts.Identifier;
+}
+
+export interface Setter {
+    decl: WithBody<ts.SetAccessorDeclaration>;
+    name: ts.Identifier;
+}
 
 export type ValidClassComputedDeclaration = {
     getter: Getter;
     setter?: Setter;
 };
+
 export type ClassComputedDeclaration =
     | ValidClassComputedDeclaration
     | {

@@ -18,6 +18,11 @@ export default class YourComponent extends Vue {
         this.data1++
     }
 
+    @Emit('testtest')
+    testt () {
+        this.data1++
+    }
+
     @Emit()
     test1 (v: number) {
         this.data1++
@@ -30,7 +35,7 @@ export default class YourComponent extends Vue {
     }
 
     @Inject() readonly foo: string
-    @Inject('bar') readonly bar: string
+    @Inject('bar') readonly injectionBar: string
   
     @Provide() provideFoo = 'foo'
     @Provide('baz') provideBaz = 'baz'
@@ -90,26 +95,33 @@ const YourComponent = {
     },
     context
   ) {
+    const foo: string = inject("foo");
+    const bar: string = inject("bar");
     const data1 = value(123);
     const data2 = value(234);
-    const what = computed(() => {
-      return data1.value;
-    });
-    const why = computed(
-      () => {
-        return data2.value + props.propsA + 1;
-      },
-      value => {
-        data2.value = value - 1;
-        console.log(foo, bar);
-      }
-    );
+    const test = () => {
+      data1.value++;
+      context.$emit("test");
+    };
+    const testtest = () => {
+      data1.value++;
+      context.$emit("testtest");
+    };
+    const test1 = (v: number) => {
+      data1.value++;
+      context.$emit("test1", v);
+    };
+    const test2 = (v: number) => {
+      data1.value++;
+      context.$emit("test2", v + 1, v);
+    };
     const hehe = () => {
       data1.value++;
       console.log(data1.value, props.propsA);
       context.$emit("123", data1.value);
     };
     const fooo = () => {
+      const { propsA, data1, data2, what, why, hehe } = this;
       const { fff } = foo();
       console.log(propsA, data1, data2, what, why, hehe);
       console.log(
@@ -121,6 +133,18 @@ const YourComponent = {
         hehe
       );
     };
+    const what = computed(() => {
+      return data1.value;
+    });
+    const why = computed(
+      () => {
+        return data2.value + props.propsA + 1;
+      },
+      value => {
+        data2.value = value - 1;
+        console.log(foo, this.bar);
+      }
+    );
     onMounted(() => {
       if (context.$slots.default) {
         context.$slots.defalult(context.$refs.node);
@@ -130,28 +154,13 @@ const YourComponent = {
     watch(propsA, (value: number, oldValue: number) => {
       console.log(props.propsA, value, oldValue);
     });
-    const test = () => {
-      data1.value++;
-      context.$emit("test");
-    };
-    const test1 = (v: number) => {
-      data1.value++;
-      context.$emit("test1", v);
-    };
-    const test2 = (v: number) => {
-      data1.value++;
-      context.$emit("test2", v + 1, v);
-    };
-    provide({ provideFoo: "foo", provideBaz: "baz" });
-    const foo: string = inject("foo");
-    const bar: string = inject("bar");
-    return { data1, data2, hehe, fooo, what, why };
+    provide({ provideFoo: "foo", baz: "baz" });
+    return { foo, bar, data1, data2, hehe, fooo, what, why };
   }
 };
 ```
 
 ## TODO:
-
 - [x] Full Vue feature support
     <details>
     
@@ -172,7 +181,7 @@ const YourComponent = {
 - [ ] Vue instance transform
     <details>
     
-    - [ ] Decorator arguments
+    - [x] Decorator arguments
     - [x] Wrapper value
     - [x] Property access
     - [ ] Destruction

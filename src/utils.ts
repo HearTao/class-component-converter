@@ -7,6 +7,13 @@ export function some<T>(
     return !!(items && items.some(cb));
 }
 
+export function find<T>(
+    items: ReadonlyArray<T> | null | undefined,
+    cb: (v: T) => boolean
+): T | undefined {
+    return (items && items.find(cb)) || undefined;
+}
+
 export function isDef<T>(v: T | undefined): v is T {
     return v !== undefined && v !== null;
 }
@@ -27,7 +34,7 @@ export function not<P extends any[]>(
 }
 
 export function or<P extends any[]>(
-    ...funcs: Array<(...args: P) => boolean>
+    ...funcs: Array<(...args: P) => unknown>
 ): (...args: P) => boolean {
     return (...args: P) => {
         return funcs.some(func => func(...args));
@@ -44,6 +51,13 @@ export function cast<T, U extends T>(value: T, cb: (v: T) => v is U): U {
 export function first<T>(items: ReadonlyArray<T>): T {
     if (!items.length) {
         throw new Error('out of range');
+    }
+    return items[0];
+}
+
+export function firstOrUndefined<T>(items: ReadonlyArray<T>): T | undefined {
+    if (!items.length) {
+        return undefined;
     }
     return items[0];
 }
@@ -69,4 +83,29 @@ export function pickOut<T, U extends T>(
         }
     });
     return [r2, r1];
+}
+
+export function id<T>(v: T): T {
+    return v;
+}
+
+export function match<T>(value: T) {
+    let done: boolean = false;
+    function task<U>(cb: (v: T) => U | undefined, recv: (v: U) => void) {
+        if (!done) {
+            const result = cb(value);
+            if (result) {
+                done = true;
+                recv(result);
+            }
+        }
+        return task;
+    }
+    return task;
+}
+
+export function push<T>(items: T[]) {
+    return function(x: T) {
+        items.push(x);
+    };
 }

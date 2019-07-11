@@ -1,14 +1,13 @@
 import * as ts from 'typescript';
 import {
-    some,
     append,
-    not,
     or,
-    cast,
-    first,
     assertDef,
     pickOut,
-    isDef
+    isDef,
+    push,
+    match,
+    id
 } from './utils';
 import createVHost from './host';
 import {
@@ -36,11 +35,11 @@ import {
     isClassWatchDeclaration,
     isClassEemitDeclaration,
     isClassLifeCycleDeclaration,
-    isValidComputedDeclaration
+    isValidComputedDeclaration,
+    isGetter
 } from './helper';
-import {
-    classNeedTransform
-} from './transform';
+import { classNeedTransform } from './transform';
+import { pipeline } from 'stream';
 
 function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
     let render: ClassMethodDeclaration | undefined = undefined;
@@ -55,56 +54,40 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
     const injections: ClassInjectDeclaration[] = [];
     const ignored: ts.ClassElement[] = [];
 
+    const pushIgnored = push(ignored);
     node.members.forEach(member => {
         switch (member.kind) {
             case ts.SyntaxKind.PropertyDeclaration:
-                if (isClassStateDeclaration(member)) {
-                    states.push(member);
-                } else if (isClassPropDeclaration(member)) {
-                    props.push(member);
-                } else if (isClassProviderDeclaration(member)) {
-                    providers.push(member);
-                } else if (isClassInjectionDeclaration(member)) {
-                    injections.push(member);
-                } else {
-                    ignored.push(member);
-                }
-                break;
+                return match(member)(isClassStateDeclaration, push(states))(
+                    isClassPropDeclaration,
+                    push(props)
+                )(isClassProviderDeclaration, push(providers))(
+                    isClassInjectionDeclaration,
+                    push(injections)
+                )(id, pushIgnored);
+
             case ts.SyntaxKind.GetAccessor:
             case ts.SyntaxKind.SetAccessor:
-                if (isClassComputedDeclaration(member)) {
-                    const name = member.name.text;
-                    let value:
-                        | ClassComputedDeclaration
-                        | undefined = computed.get(name);
-                    if (ts.isGetAccessor(member)) {
-                        value = { ...value, getter: member };
+                return match(member)(isClassComputedDeclaration, mem => {
+                    const name = mem.name.text;
+                    let value = computed.get(name);
+                    if (isGetter(mem)) {
+                        value = { ...value, getter: mem };
                     } else {
-                        value = { ...value, setter: member };
+                        value = { ...value, setter: mem };
                     }
                     computed.set(name, value);
-                } else {
-                    ignored.push(member);
-                }
-                break;
+                })(id, pushIgnored);
             case ts.SyntaxKind.MethodDeclaration:
-                if (isRenderFunction(member)) {
-                    render = member;
-                } else if (isClassWatchDeclaration(member)) {
-                    watchers.push(member);
-                } else if (isClassEemitDeclaration(member)) {
-                    emits.push(member);
-                } else if (isClassLifeCycleDeclaration(member)) {
-                    lifecycles.push(member);
-                } else if (isClassMethodDeclaration(member)) {
-                    methods.push(member);
-                } else {
-                    ignored.push(member);
-                }
-                break;
+                return match(member)(isRenderFunction, mem => (render = mem))(
+                    isClassWatchDeclaration,
+                    push(watchers)
+                )(isClassEemitDeclaration, push(emits))(
+                    isClassLifeCycleDeclaration,
+                    push(lifecycles)
+                )(isClassMethodDeclaration, push(methods))(id, pushIgnored);
             default:
-                ignored.push(member);
-                break;
+                return pushIgnored(member);
         }
     });
     return {
@@ -182,13 +165,13 @@ function classTransformer(
                         [
                             ts.createVariableDeclaration(
                                 state.name,
-                                state.type,
+                                state.decl.type,
                                 ts.createCall(
                                     ts.createIdentifier(stateIdentifier),
                                     undefined,
-                                    state.initializer && [
+                                    state.decl.initializer && [
                                         ts.visitEachChild(
-                                            state.initializer,
+                                            state.decl.initializer,
                                             visitor,
                                             context
                                         )
@@ -216,8 +199,8 @@ function classTransformer(
                         ts.createPropertySignature(
                             undefined,
                             prop.name.text,
-                            prop.questionToken,
-                            prop.type,
+                            prop.decl.questionToken,
+                            prop.decl.type,
                             undefined
                         )
                     )
@@ -250,7 +233,7 @@ function classTransformer(
                             [
                                 ts.createVariableDeclaration(
                                     comp.getter.name.text,
-                                    comp.getter.type,
+                                    comp.getter.decl.type,
                                     ts.createCall(
                                         ts.createIdentifier(computedIdentifier),
                                         undefined,
@@ -266,7 +249,7 @@ function classTransformer(
                                                             .EqualsGreaterThanToken
                                                     ),
                                                     ts.visitEachChild(
-                                                        comp.getter.body,
+                                                        comp.getter.decl.body,
                                                         visitor,
                                                         context
                                                     )
@@ -276,14 +259,14 @@ function classTransformer(
                                                 ts.createArrowFunction(
                                                     undefined,
                                                     undefined,
-                                                    comp.setter.parameters,
+                                                    comp.setter.decl.parameters,
                                                     undefined,
                                                     ts.createToken(
                                                         ts.SyntaxKind
                                                             .EqualsGreaterThanToken
                                                     ),
                                                     ts.visitEachChild(
-                                                        comp.setter.body,
+                                                        comp.setter.decl.body,
                                                         visitor,
                                                         context
                                                     )
@@ -322,7 +305,7 @@ function classTransformer(
                                     ts.SyntaxKind.EqualsGreaterThanToken
                                 ),
                                 ts.visitEachChild(
-                                    lifecycle.body,
+                                    lifecycle.decl.body,
                                     visitor,
                                     context
                                 )
@@ -346,14 +329,14 @@ function classTransformer(
                                 undefined,
                                 ts.createArrowFunction(
                                     undefined,
-                                    method.typeParameters,
-                                    method.parameters,
+                                    method.decl.typeParameters,
+                                    method.decl.parameters,
                                     undefined,
                                     ts.createToken(
                                         ts.SyntaxKind.EqualsGreaterThanToken
                                     ),
                                     ts.visitEachChild(
-                                        method.body,
+                                        method.decl.body,
                                         visitor,
                                         context
                                     )
@@ -372,28 +355,20 @@ function classTransformer(
             return watchers.map(watcher =>
                 ts.createExpressionStatement(
                     ts.createCall(ts.createIdentifier('watch'), undefined, [
-                        ts.createIdentifier(
-                            cast(
-                                first(
-                                    cast(
-                                        watcher.decorators.find(
-                                            isWatchDecorator
-                                        )!.expression,
-                                        ts.isCallExpression
-                                    ).arguments
-                                ),
-                                ts.isStringLiteral
-                            ).text
-                        ),
+                        ts.createIdentifier(watcher.watch),
                         ts.createArrowFunction(
                             undefined,
                             undefined,
-                            watcher.parameters,
+                            watcher.decl.parameters,
                             undefined,
                             ts.createToken(
                                 ts.SyntaxKind.EqualsGreaterThanToken
                             ),
-                            ts.visitEachChild(watcher.body, visitor, context)
+                            ts.visitEachChild(
+                                watcher.decl.body,
+                                visitor,
+                                context
+                            )
                         )
                     ])
                 )
@@ -404,8 +379,12 @@ function classTransformer(
             emits: ReadonlyArray<ClassEmitDeclaration>
         ): ts.VariableStatement[] {
             return emits.map(emit => {
-                const parameters = emit.parameters;
-                const body = ts.visitEachChild(emit.body, visitor, context);
+                const parameters = emit.decl.parameters;
+                const body = ts.visitEachChild(
+                    emit.decl.body,
+                    visitor,
+                    context
+                );
                 const stmts: ReadonlyArray<ts.Statement> = body
                     ? body.statements
                     : [];
@@ -468,7 +447,7 @@ function classTransformer(
                                 ts.createPropertyAssignment(
                                     provider.name,
                                     ts.visitEachChild(
-                                        assertDef(provider.initializer),
+                                        provider.decl.initializer,
                                         visitor,
                                         context
                                     )
@@ -490,7 +469,7 @@ function classTransformer(
                         [
                             ts.createVariableDeclaration(
                                 injection.name,
-                                injection.type,
+                                injection.decl.type,
                                 ts.createCall(
                                     ts.createIdentifier('inject'),
                                     undefined,
@@ -601,7 +580,7 @@ function classTransformer(
                                             ])
                                         )
                                     ],
-                                    render
+                                    render && render.decl
                                 )
                             )
                         )
@@ -684,7 +663,7 @@ function classTransformer(
                 ) {
                     return ts.createPropertyAccess(
                         ts.createIdentifier('props'),
-                        ts.createIdentifier(node.text),
+                        ts.createIdentifier(node.text)
                     );
                 }
             }

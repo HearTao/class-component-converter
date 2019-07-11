@@ -8,12 +8,17 @@ import {
     ClassPropDeclaration,
     ClassProviderDeclaration,
     ClassInjectDeclaration,
-    BodyDeclaration,
+    WithBody,
     ClassLifeCycleDeclaration,
     ClassComputedDeclaration,
-    ValidClassComputedDeclaration
+    ValidClassComputedDeclaration,
+    Getter,
+    Setter,
+    Body,
+    Initializer,
+    WithInitializer
 } from './types';
-import { some } from './utils';
+import { some, find, first, firstOrUndefined } from './utils';
 
 export function isVueClass(type: ts.ExpressionWithTypeArguments): boolean {
     return ts.isIdentifier(type.expression) && type.expression.text === 'Vue';
@@ -67,86 +72,174 @@ export function isInjectionDecorator(expr: ts.Decorator): boolean {
 
 export function isClassStateDeclaration(
     node: ts.ClassElement
-): node is ClassStateDeclaration {
-    return (
+): ClassStateDeclaration | undefined {
+    if (
         ts.isPropertyDeclaration(node) &&
         !node.decorators &&
         ts.isIdentifier(node.name)
-    );
+    ) {
+        return {
+            decl: node,
+            name: node.name
+        };
+    }
+    return undefined;
+}
+
+export function withBody<T extends Partial<Body>>(v: T): v is WithBody<T> {
+    return !!v.body;
+}
+
+export function withInitializer<T extends Partial<Initializer>>(
+    v: T
+): v is WithInitializer<T> {
+    return !!v.initializer;
 }
 
 export function isClassMethodDeclaration(
     node: ts.ClassElement
-): node is ClassMethodDeclaration {
-    return (
+): ClassMethodDeclaration | undefined {
+    if (
         ts.isMethodDeclaration(node) &&
+        withBody(node) &&
         !node.decorators &&
         ts.isIdentifier(node.name)
-    );
+    ) {
+        return {
+            decl: node,
+            name: node.name
+        };
+    }
+    return undefined;
 }
 
 export function isRenderFunction(
     node: ts.ClassElement
-): node is ClassMethodDeclaration {
-    return isClassMethodDeclaration(node) && node.name.text === 'render';
+): ClassMethodDeclaration | undefined {
+    const result = isClassMethodDeclaration(node);
+    if (result && result.name.text === 'render') {
+        return result;
+    }
+    return undefined;
 }
 
 export function isClassWatchDeclaration(
     node: ts.ClassElement
-): node is ClassWatchDeclaration {
-    return (
+): ClassWatchDeclaration | undefined {
+    if (
         ts.isMethodDeclaration(node) &&
-        ts.isIdentifier(node.name) &&
-        some(node.decorators, isWatchDecorator)
-    );
+        withBody(node) &&
+        ts.isIdentifier(node.name)
+    ) {
+        const watch = find(node.decorators, isWatchDecorator);
+        if (watch && ts.isCallExpression(watch.expression)) {
+            const watchValue = firstOrUndefined(watch.expression.arguments);
+            if (watchValue && ts.isStringLiteralLike(watchValue)) {
+                return {
+                    decl: node,
+                    name: node.name,
+                    watch: watchValue.text
+                };
+            }
+        }
+    }
+    return undefined;
 }
 
 export function isClassEemitDeclaration(
     node: ts.ClassElement
-): node is ClassEmitDeclaration {
-    return (
+): ClassEmitDeclaration | undefined {
+    if (
         ts.isMethodDeclaration(node) &&
-        ts.isIdentifier(node.name) &&
-        some(node.decorators, isEmitDecorator)
-    );
+        withBody(node) &&
+        ts.isIdentifier(node.name)
+    ) {
+        const emit = find(node.decorators, isEmitDecorator);
+        if (emit && ts.isCallExpression(emit.expression)) {
+            const name = firstOrUndefined(emit.expression.arguments);
+            return {
+                decl: node,
+                name:
+                    name && ts.isStringLiteral(name)
+                        ? ts.createIdentifier(name.text)
+                        : node.name
+            };
+        }
+    }
+    return undefined;
 }
 
 export function isClassPropDeclaration(
     node: ts.ClassElement
-): node is ClassPropDeclaration {
-    return (
+): ClassPropDeclaration | undefined {
+    if (
         ts.isPropertyDeclaration(node) &&
         some(node.decorators, isPropsDecorator) &&
         ts.isIdentifier(node.name)
-    );
+    ) {
+        return {
+            decl: node,
+            name: node.name
+        };
+    }
 }
 
 export function isClassProviderDeclaration(
     node: ts.ClassElement
-): node is ClassProviderDeclaration {
-    return (
+): ClassProviderDeclaration | undefined {
+    if (
         ts.isPropertyDeclaration(node) &&
-        some(node.decorators, isProviderDecorator) &&
+        withInitializer(node) &&
         ts.isIdentifier(node.name)
-    );
+    ) {
+        const provider = find(node.decorators, isProviderDecorator);
+        if (provider && ts.isCallExpression(provider.expression)) {
+            const name = firstOrUndefined(provider.expression.arguments);
+            return {
+                decl: node,
+                name:
+                    name && ts.isStringLiteral(name)
+                        ? ts.createIdentifier(name.text)
+                        : node.name
+            };
+        }
+    }
+    return undefined;
 }
 
 export function isClassInjectionDeclaration(
     node: ts.ClassElement
-): node is ClassInjectDeclaration {
-    return (
-        ts.isPropertyDeclaration(node) &&
-        some(node.decorators, isInjectionDecorator) &&
-        ts.isIdentifier(node.name)
-    );
+): ClassInjectDeclaration | undefined {
+    if (ts.isPropertyDeclaration(node) && ts.isIdentifier(node.name)) {
+        const injection = find(node.decorators, isInjectionDecorator);
+        if (injection && ts.isCallExpression(injection.expression)) {
+            const name = firstOrUndefined(injection.expression.arguments);
+            return {
+                decl: node,
+                name:
+                    name && ts.isStringLiteral(name)
+                        ? ts.createIdentifier(name.text)
+                        : node.name
+            };
+        }
+    }
+    return undefined;
 }
 
 export function isClassComputedDeclaration(
     node: ts.ClassElement
-): node is ts.AccessorDeclaration &
-    IdentifierName &
-    BodyDeclaration<ts.AccessorDeclaration> {
-    return ts.isAccessor(node) && ts.isIdentifier(node.name) && !!node.body;
+): Getter | Setter | undefined {
+    if (ts.isAccessor(node) && withBody(node) && ts.isIdentifier(node.name)) {
+        return {
+            decl: node,
+            name: node.name
+        } as Getter | Setter;
+    }
+    return undefined;
+}
+
+export function isGetter(v: Getter | Setter): v is Getter {
+    return ts.isGetAccessor(v.decl);
 }
 
 const lifecycles = [
@@ -164,12 +257,19 @@ const lifecycles = [
 ];
 export function isClassLifeCycleDeclaration(
     node: ts.ClassElement
-): node is ClassLifeCycleDeclaration {
-    return (
+): ClassLifeCycleDeclaration | undefined {
+    if (
         ts.isMethodDeclaration(node) &&
+        withBody(node) &&
         ts.isIdentifier(node.name) &&
         lifecycles.includes(node.name.text)
-    );
+    ) {
+        return {
+            decl: node,
+            name: node.name
+        };
+    }
+    return undefined;
 }
 
 export function isValidComputedDeclaration(
