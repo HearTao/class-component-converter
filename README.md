@@ -48,7 +48,7 @@ export default class YourComponent extends Vue {
 
     set why (value) {
         this.data2 = value - 1
-        console.log(this.foo, this.bar, this.provideFoo, this.provideBaz)
+        console.log(this.foo, this.bar)
     }
 
     hehe() {
@@ -101,7 +101,7 @@ const YourComponent = {
       },
       value => {
         data2.value = value - 1;
-        console.log(this.foo, this.bar, this.provideFoo, this.provideBaz);
+        console.log(foo, bar);
       }
     );
     const hehe = () => {
@@ -143,8 +143,8 @@ const YourComponent = {
       context.$emit("test2", v + 1, v);
     };
     provide({ provideFoo: "foo", provideBaz: "baz" });
-    const foo: string = inject(foo);
-    const bar: string = inject(bar);
+    const foo: string = inject("foo");
+    const bar: string = inject("bar");
     return { data1, data2, hehe, fooo, what, why };
   }
 };

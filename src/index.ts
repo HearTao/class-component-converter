@@ -97,7 +97,8 @@ function propertyAccessNeedTransform(
                     isClassComputedDeclaration,
                     isClassStateDeclaration,
                     isClassMethodDeclaration,
-                    isClassPropDeclaration
+                    isClassPropDeclaration,
+                    isClassInjectionDeclaration
                 )(declaration)
             ) {
                 return true;
@@ -803,7 +804,7 @@ function classTransformer(
                                 ts.createCall(
                                     ts.createIdentifier('inject'),
                                     undefined,
-                                    [injection.name]
+                                    [ts.createStringLiteral(injection.name.text)]
                                 )
                             )
                         ],
@@ -941,7 +942,8 @@ function classTransformer(
                         or(
                             isClassComputedDeclaration,
                             isClassStateDeclaration,
-                            isClassMethodDeclaration
+                            isClassMethodDeclaration,
+                            isClassInjectionDeclaration
                         )(declaration)
                     ) {
                         return node.name;

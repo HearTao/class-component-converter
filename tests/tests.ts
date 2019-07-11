@@ -41,7 +41,7 @@ export default class YourComponent extends Vue {
 
     set why (value) {
         this.data2 = value - 1
-        console.log(this.foo, this.bar, this.provideFoo, this.provideBaz)
+        console.log(this.foo, this.bar)
     }
 
     hehe() {
