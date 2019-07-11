@@ -169,20 +169,11 @@ const YourComponent = {
     
     </details>
 
-- [ ] Refactor
-    <details>
-
-    - [ ] Constants
-    - [ ] Extract Info
-
-    </details>
-
 - [ ] Vue instance transform
     <details>
     
     - [ ] Decorator arguments
     - [x] Wrapper value
-    - [ ] Wrapper value fold
     - [x] Property access
     - [ ] Destruction
     - [ ] Emits to callback
