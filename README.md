@@ -169,6 +169,14 @@ const YourComponent = {
     
     </details>
 
+- [ ] Refactor
+    <details>
+
+    - [ ] Constants
+    - [ ] Extract Info
+
+    </details>
+
 - [ ] Vue instance transform
     <details>
     
