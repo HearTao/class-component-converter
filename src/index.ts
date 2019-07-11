@@ -11,327 +11,40 @@ import {
     isDef
 } from './utils';
 import createVHost from './host';
-
-function isVueClass(type: ts.ExpressionWithTypeArguments): boolean {
-    return ts.isIdentifier(type.expression) && type.expression.text === 'Vue';
-}
-
-function isComponentDecorator(expr: ts.Decorator): boolean {
-    return (
-        ts.isIdentifier(expr.expression) && expr.expression.text === 'Component'
-    );
-}
-
-function isPropsDecorator(expr: ts.Decorator): boolean {
-    return (
-        ts.isCallExpression(expr.expression) &&
-        ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Prop'
-    );
-}
-
-function isWatchDecorator(expr: ts.Decorator): boolean {
-    return (
-        ts.isCallExpression(expr.expression) &&
-        ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Watch'
-    );
-}
-
-function isEmitDecorator(expr: ts.Decorator): boolean {
-    return (
-        ts.isCallExpression(expr.expression) &&
-        ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Emit'
-    );
-}
-
-function isProviderDecorator(expr: ts.Decorator): boolean {
-    return (
-        ts.isCallExpression(expr.expression) &&
-        ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Provide'
-    );
-}
-
-function isInjectionDecorator(expr: ts.Decorator): boolean {
-    return (
-        ts.isCallExpression(expr.expression) &&
-        ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Inject'
-    );
-}
-
-function classNeedTransform(node: ts.ClassLikeDeclaration): boolean {
-    return (
-        some(
-            node.heritageClauses,
-            x =>
-                x.token === ts.SyntaxKind.ExtendsKeyword &&
-                some(x.types, isVueClass)
-        ) && some(node.decorators, isComponentDecorator)
-    );
-}
-
-function propertyAccessNeedTransform(
-    node: ts.PropertyAccessExpression,
-    checker: ts.TypeChecker
-): boolean {
-    if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
-        if (
-            node.name.text === '$emit' ||
-            node.name.text === '$refs' ||
-            node.name.text === '$slots'
-        ) {
-            return true;
-        }
-        const symbol = checker.getSymbolAtLocation(node);
-        if (
-            symbol &&
-            symbol.valueDeclaration &&
-            ts.isClassElement(symbol.valueDeclaration)
-        ) {
-            const declaration = symbol.valueDeclaration;
-            if (
-                or(
-                    isClassComputedDeclaration,
-                    isClassStateDeclaration,
-                    isClassMethodDeclaration,
-                    isClassPropDeclaration,
-                    isClassInjectionDeclaration
-                )(declaration)
-            ) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-function skipParent(node: ts.Expression): ts.Expression {
-    while (node && ts.isParenthesizedExpression(node)) {
-        node = node.expression;
-    }
-    return node;
-}
-
-function variableNeedTransform(node: ts.VariableDeclaration): boolean {
-    return !!(
-        node.initializer &&
-        ts.isObjectBindingPattern(node.name) &&
-        skipParent(node.initializer).kind === ts.SyntaxKind.ThisKeyword
-    );
-}
-
-function variableStatementNeedTransform(stmt: ts.VariableStatement): boolean {
-    return stmt.declarationList.declarations.some(variableNeedTransform);
-}
-
-function identifierNeedTransform(
-    node: ts.Identifier,
-    checker: ts.TypeChecker
-): boolean {
-    const symbol = checker.getSymbolAtLocation(node);
-    if (
-        symbol &&
-        symbol.valueDeclaration &&
-        ts.isClassElement(symbol.valueDeclaration) &&
-        symbol.valueDeclaration.name !== node
-    ) {
-        if (
-            ts.isPropertyAccessExpression(node.parent) &&
-            node.parent.name === node
-        ) {
-            return or(isClassComputedDeclaration, isClassStateDeclaration)(
-                symbol.valueDeclaration
-            );
-        } else {
-            return or(
-                isClassComputedDeclaration,
-                isClassStateDeclaration,
-                isClassPropDeclaration
-            )(symbol.valueDeclaration);
-        }
-    }
-    return false;
-}
-
-function isClassStateDeclaration(
-    node: ts.ClassElement
-): node is ClassStateDeclaration {
-    return (
-        ts.isPropertyDeclaration(node) &&
-        !node.decorators &&
-        ts.isIdentifier(node.name)
-    );
-}
-
-function isClassMethodDeclaration(
-    node: ts.ClassElement
-): node is ClassMethodDeclaration {
-    return (
-        ts.isMethodDeclaration(node) &&
-        !node.decorators &&
-        ts.isIdentifier(node.name)
-    );
-}
-
-function isRenderFunction(
-    node: ts.ClassElement
-): node is ClassMethodDeclaration {
-    return isClassMethodDeclaration(node) && node.name.text === 'render';
-}
-
-function isClassWatchDeclaration(
-    node: ts.ClassElement
-): node is ClassWatchDeclaration {
-    return (
-        ts.isMethodDeclaration(node) &&
-        ts.isIdentifier(node.name) &&
-        some(node.decorators, isWatchDecorator)
-    );
-}
-
-function isClassEemitDeclaration(
-    node: ts.ClassElement
-): node is ClassEmitDeclaration {
-    return (
-        ts.isMethodDeclaration(node) &&
-        ts.isIdentifier(node.name) &&
-        some(node.decorators, isEmitDecorator)
-    );
-}
-
-function isClassPropDeclaration(
-    node: ts.ClassElement
-): node is ClassPropDeclaration {
-    return (
-        ts.isPropertyDeclaration(node) &&
-        some(node.decorators, isPropsDecorator) &&
-        ts.isIdentifier(node.name)
-    );
-}
-
-function isClassProviderDeclaration(
-    node: ts.ClassElement
-): node is ClassProviderDeclaration {
-    return (
-        ts.isPropertyDeclaration(node) &&
-        some(node.decorators, isProviderDecorator) &&
-        ts.isIdentifier(node.name)
-    );
-}
-
-function isClassInjectionDeclaration(
-    node: ts.ClassElement
-): node is ClassInjectDeclaration {
-    return (
-        ts.isPropertyDeclaration(node) &&
-        some(node.decorators, isInjectionDecorator) &&
-        ts.isIdentifier(node.name)
-    );
-}
-
-function isClassComputedDeclaration(
-    node: ts.ClassElement
-): node is ts.AccessorDeclaration &
-    IdentifierName &
-    BodyDeclaration<ts.AccessorDeclaration> {
-    return ts.isAccessor(node) && ts.isIdentifier(node.name) && !!node.body;
-}
-
-const lifecycles = [
-    'beforeCreate',
-    'created',
-    'beforeMount',
-    'mounted',
-    'beforeUpdate',
-    'updated',
-    'activated',
-    'deactivated',
-    'beforeDestroy',
-    'destroyed',
-    'errorCaptured'
-];
-function isClassLifeCycleDeclaration(
-    node: ts.ClassElement
-): node is ClassLifeCycleDeclaration {
-    return (
-        ts.isMethodDeclaration(node) &&
-        ts.isIdentifier(node.name) &&
-        lifecycles.includes(node.name.text)
-    );
-}
-
-function isValidComputedDeclaration(
-    decl: ClassComputedDeclaration
-): decl is ValidClassComputedDeclaration {
-    return !!decl.getter;
-}
-
-type IdentifierName = { name: ts.Identifier };
-type Decorators = { decorators: ReadonlyArray<ts.Decorator> };
-
-type ClassStateDeclaration = ts.PropertyDeclaration & IdentifierName;
-type ClassPropDeclaration = ts.PropertyDeclaration &
-    IdentifierName &
-    Decorators;
-type ClassProviderDeclaration = ts.PropertyDeclaration &
-    IdentifierName &
-    Decorators;
-type ClassInjectDeclaration = ts.PropertyDeclaration &
-    IdentifierName &
-    Decorators;
-
-type ClassLifeCycleDeclaration = ts.MethodDeclaration &
-    IdentifierName &
-    BodyDeclaration<ts.MethodDeclaration>;
-type ClassMethodDeclaration = ts.MethodDeclaration &
-    IdentifierName &
-    BodyDeclaration<ts.MethodDeclaration>;
-type ClassWatchDeclaration = ts.MethodDeclaration &
-    IdentifierName &
-    Decorators &
-    BodyDeclaration<ts.MethodDeclaration>;
-type ClassEmitDeclaration = ts.MethodDeclaration &
-    IdentifierName &
-    Decorators &
-    BodyDeclaration<ts.MethodDeclaration>;
-
-type BodyDeclaration<
-    T extends ts.AccessorDeclaration | ts.MethodDeclaration
-> = { body: Pick<T, 'body'> };
-type Getter = ts.GetAccessorDeclaration &
-    IdentifierName &
-    BodyDeclaration<ts.GetAccessorDeclaration>;
-type Setter = ts.SetAccessorDeclaration &
-    IdentifierName &
-    BodyDeclaration<ts.SetAccessorDeclaration>;
-
-type ValidClassComputedDeclaration = {
-    getter: Getter;
-    setter?: Setter;
-};
-type ClassComputedDeclaration =
-    | ValidClassComputedDeclaration
-    | {
-          getter?: Getter;
-          setter: Setter;
-      };
-
-interface ComponentInfo {
-    render: ClassMethodDeclaration | undefined;
-    computed: Map<string, ClassComputedDeclaration>;
-    states: ClassStateDeclaration[];
-    props: ClassPropDeclaration[];
-    methods: ClassMethodDeclaration[];
-    emits: ClassEmitDeclaration[];
-    watchers: ClassWatchDeclaration[];
-    lifecycles: ClassLifeCycleDeclaration[];
-    ignored: ts.ClassElement[];
-    providers: ClassProviderDeclaration[];
-    injections: ClassInjectDeclaration[];
-}
+import {
+    IdentifierName,
+    ClassStateDeclaration,
+    ClassMethodDeclaration,
+    ClassWatchDeclaration,
+    ClassEmitDeclaration,
+    ClassPropDeclaration,
+    ClassProviderDeclaration,
+    ClassInjectDeclaration,
+    ClassLifeCycleDeclaration,
+    ClassComputedDeclaration,
+    ComponentInfo
+} from './types';
+import {
+    isWatchDecorator,
+    isClassComputedDeclaration,
+    isClassStateDeclaration,
+    isClassMethodDeclaration,
+    isClassPropDeclaration,
+    isClassInjectionDeclaration,
+    isClassProviderDeclaration,
+    isRenderFunction,
+    isClassWatchDeclaration,
+    isClassEemitDeclaration,
+    isClassLifeCycleDeclaration,
+    isValidComputedDeclaration
+} from './helper';
+import {
+    classNeedTransform,
+    propertyAccessNeedTransform,
+    variableStatementNeedTransform,
+    identifierNeedTransform,
+    variableNeedTransform
+} from './transform';
 
 function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
     let render: ClassMethodDeclaration | undefined = undefined;
@@ -804,7 +517,11 @@ function classTransformer(
                                 ts.createCall(
                                     ts.createIdentifier('inject'),
                                     undefined,
-                                    [ts.createStringLiteral(injection.name.text)]
+                                    [
+                                        ts.createStringLiteral(
+                                            injection.name.text
+                                        )
+                                    ]
                                 )
                             )
                         ],
