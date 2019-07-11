@@ -41,9 +41,7 @@ import {
 import {
     classNeedTransform,
     propertyAccessNeedTransform,
-    variableStatementNeedTransform,
-    identifierNeedTransform,
-    variableNeedTransform
+    identifierNeedTransform
 } from './transform';
 
 function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
@@ -141,10 +139,6 @@ function classTransformer(
                     return propertyAccessExpressionVisitor(
                         node as ts.PropertyAccessExpression
                     );
-                case ts.SyntaxKind.VariableStatement:
-                    return variableStatementVisitor(
-                        node as ts.VariableStatement
-                    );
                 case ts.SyntaxKind.Identifier:
                     return identifierVisitor(node as ts.Identifier);
                 default:
@@ -171,15 +165,6 @@ function classTransformer(
                 return transformPropertyAccessExpression(
                     ts.visitEachChild(declaration, visitor, context),
                     checker
-                );
-            }
-            return ts.visitEachChild(declaration, visitor, context);
-        }
-
-        function variableStatementVisitor(declaration: ts.VariableStatement) {
-            if (variableStatementNeedTransform(declaration)) {
-                return transformVariableStatement(
-                    ts.visitEachChild(declaration, visitor, context)
                 );
             }
             return ts.visitEachChild(declaration, visitor, context);
@@ -674,20 +659,6 @@ function classTransformer(
             }
 
             return node;
-        }
-
-        function transformVariableStatement(
-            node: ts.VariableStatement
-        ): ts.Node {
-            const newDeclList = node.declarationList.declarations.filter(
-                not(variableNeedTransform)
-            );
-            return newDeclList.length
-                ? ts.createVariableStatement(
-                      node.modifiers,
-                      ts.createVariableDeclarationList(newDeclList)
-                  )
-                : ts.createEmptyStatement();
         }
 
         function transformIdentifier(

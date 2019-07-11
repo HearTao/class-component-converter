@@ -57,20 +57,6 @@ export function propertyAccessNeedTransform(
     return false;
 }
 
-export function variableNeedTransform(node: ts.VariableDeclaration): boolean {
-    return !!(
-        node.initializer &&
-        ts.isObjectBindingPattern(node.name) &&
-        skipParens(node.initializer).kind === ts.SyntaxKind.ThisKeyword
-    );
-}
-
-export function variableStatementNeedTransform(
-    stmt: ts.VariableStatement
-): boolean {
-    return stmt.declarationList.declarations.some(variableNeedTransform);
-}
-
 export function identifierNeedTransform(
     node: ts.Identifier,
     checker: ts.TypeChecker
