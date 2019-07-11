@@ -39,9 +39,7 @@ import {
     isValidComputedDeclaration
 } from './helper';
 import {
-    classNeedTransform,
-    propertyAccessNeedTransform,
-    identifierNeedTransform
+    classNeedTransform
 } from './transform';
 
 function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
@@ -161,23 +159,17 @@ function classTransformer(
         function propertyAccessExpressionVisitor(
             declaration: ts.PropertyAccessExpression
         ) {
-            if (propertyAccessNeedTransform(declaration, checker)) {
-                return transformPropertyAccessExpression(
-                    ts.visitEachChild(declaration, visitor, context),
-                    checker
-                );
-            }
-            return ts.visitEachChild(declaration, visitor, context);
+            return transformPropertyAccessExpression(
+                ts.visitEachChild(declaration, visitor, context),
+                checker
+            );
         }
 
         function identifierVisitor(declaration: ts.Identifier) {
-            if (identifierNeedTransform(declaration, checker)) {
-                return transformIdentifier(
-                    ts.visitEachChild(declaration, visitor, context),
-                    checker
-                );
-            }
-            return ts.visitEachChild(declaration, visitor, context);
+            return transformIdentifier(
+                ts.visitEachChild(declaration, visitor, context),
+                checker
+            );
         }
 
         function transformClassStates(
@@ -570,12 +562,18 @@ function classTransformer(
                                             ],
                                             undefined,
                                             ts.createBlock([
+                                                ...transformClassInjectionDeclaration(
+                                                    injections
+                                                ),
                                                 ...transformClassStates(states),
-                                                ...transformClassComputedDeclaration(
-                                                    computed
+                                                ...transformClassEmitDeclaration(
+                                                    emits
                                                 ),
                                                 ...transformClassMethodDeclaration(
                                                     methods
+                                                ),
+                                                ...transformClassComputedDeclaration(
+                                                    computed
                                                 ),
                                                 ...transformClassLifeCycleDeclaration(
                                                     lifecycles
@@ -583,17 +581,12 @@ function classTransformer(
                                                 ...transformClassWatchDeclaration(
                                                     watchers
                                                 ),
-                                                ...transformClassEmitDeclaration(
-                                                    emits
-                                                ),
                                                 ...transformClassProviderDeclaration(
                                                     providers
                                                 ),
-                                                ...transformClassInjectionDeclaration(
-                                                    injections
-                                                ),
                                                 ...transformClassDeclarationReturn(
                                                     [
+                                                        ...injections,
                                                         ...states,
                                                         ...methods,
                                                         ...Array.from(
@@ -679,7 +672,7 @@ function classTransformer(
                     )
                 ) {
                     return ts.createPropertyAccess(
-                        cast(declaration.name!, ts.isIdentifier),
+                        ts.createIdentifier(node.text),
                         ts.createIdentifier('value')
                     );
                 } else if (
@@ -691,7 +684,7 @@ function classTransformer(
                 ) {
                     return ts.createPropertyAccess(
                         ts.createIdentifier('props'),
-                        cast(declaration.name!, ts.isIdentifier)
+                        ts.createIdentifier(node.text),
                     );
                 }
             }
