@@ -1,7 +1,13 @@
-# Webpack ts-loader demo
+# Webpack demo
 
-Integrate with `getCustomTransformers` of ts-loader
+## ts-loader
 
 ```sh
 npm i && npm start
+```
+
+## awesome-typescript-loader
+
+```sh
+npm i && npm run start:atl
 ```

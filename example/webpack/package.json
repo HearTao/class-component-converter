@@ -4,10 +4,12 @@
   "version": "0.0.0",
   "description": "Example for class-component-converter",
   "scripts": {
-    "start": "webpack"
+    "start": "webpack --env.loader=ts-loader",
+    "start:atl": "webpack --env.loader=awesome-typescript-loader"
   },
   "devDependencies": {
     "@types/webpack": "^4.4.34",
+    "awesome-typescript-loader": "^5.2.1",
     "ts-loader": "^6.0.4",
     "ts-node": "^8.3.0",
     "typescript": "^3.5.3",
