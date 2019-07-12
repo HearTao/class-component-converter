@@ -1,0 +1,22 @@
+{
+  "private": true,
+  "name": "class-component-converter-exmaple-webpack",
+  "version": "0.0.0",
+  "description": "Example for class-component-converter",
+  "scripts": {
+    "start": "webpack"
+  },
+  "devDependencies": {
+    "@types/webpack": "^4.4.34",
+    "ts-loader": "^6.0.4",
+    "ts-node": "^8.3.0",
+    "typescript": "^3.5.3",
+    "webpack": "^4.35.3",
+    "webpack-cli": "^3.3.5"
+  },
+  "dependencies": {
+    "vue": "^2.6.10",
+    "vue-class-component": "^7.1.0",
+    "vue-property-decorator": "^8.2.1"
+  }
+}
