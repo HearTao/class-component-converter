@@ -7,7 +7,8 @@ import {
     isDef,
     push,
     match,
-    id
+    id,
+    find
 } from './utils';
 import createVHost from './host';
 import {
@@ -350,12 +351,17 @@ function classTransformer(
         }
 
         function transformClassWatchDeclaration(
-            watchers: ReadonlyArray<ClassWatchDeclaration>
+            watchers: ReadonlyArray<ClassWatchDeclaration>,
+            node: ts.ClassDeclaration
         ): ts.ExpressionStatement[] {
-            return watchers.map(watcher =>
-                ts.createExpressionStatement(
+            return watchers.map(watcher => {
+                const decl = find(node.members, x => !!(x.name && ts.isIdentifier(x.name) && x.name.text === watcher.watch))
+                const props = decl && isClassPropDeclaration(decl)
+                const watch = props ? ts.createPropertyAccess(ts.createIdentifier('props'), props.name) : ts.createIdentifier(watcher.watch)
+
+                return ts.createExpressionStatement(
                     ts.createCall(ts.createIdentifier('watch'), undefined, [
-                        ts.createIdentifier(watcher.watch),
+                        watch,
                         ts.createArrowFunction(
                             undefined,
                             undefined,
@@ -372,6 +378,7 @@ function classTransformer(
                         )
                     ])
                 )
+            }
             );
         }
 
@@ -558,7 +565,8 @@ function classTransformer(
                                                     lifecycles
                                                 ),
                                                 ...transformClassWatchDeclaration(
-                                                    watchers
+                                                    watchers,
+                                                    node
                                                 ),
                                                 ...transformClassProviderDeclaration(
                                                     providers

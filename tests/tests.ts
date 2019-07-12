@@ -61,12 +61,16 @@ export default class YourComponent extends Vue {
         const { fff } = foo()
 
         console.log(propsA, data1, data2, what, why, hehe)
-        console.log(this.propsA, this.data1, this.data2, this.what, this.why, this.hehe)
     }
 
     @Watch('propsA')
     handlePropsAChanged(value: number, oldValue: number) {
         console.log(this.propsA, value, oldValue)
+    }
+
+    @Watch('data1')
+    handleData1Changed() {
+        console.log(this.propsA, this.data1, this.data2, this.what, this.why, this.hehe())
     }
 
     mounted () {

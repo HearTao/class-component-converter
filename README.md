@@ -68,12 +68,16 @@ export default class YourComponent extends Vue {
         const { fff } = foo()
 
         console.log(propsA, data1, data2, what, why, hehe)
-        console.log(this.propsA, this.data1, this.data2, this.what, this.why, this.hehe)
     }
 
     @Watch('propsA')
     handlePropsAChanged(value: number, oldValue: number) {
         console.log(this.propsA, value, oldValue)
+    }
+
+    @Watch('data1')
+    handleData1Changed() {
+        console.log(this.propsA, this.data1, this.data2, this.what, this.why, this.hehe())
     }
 
     mounted () {
@@ -124,14 +128,6 @@ const YourComponent = {
       const { propsA, data1, data2, what, why, hehe } = this;
       const { fff } = foo();
       console.log(propsA, data1, data2, what, why, hehe);
-      console.log(
-        props.propsA,
-        data1.value,
-        data2.value,
-        what.value,
-        why.value,
-        hehe
-      );
     };
     const what = computed(() => {
       return data1.value;
@@ -151,8 +147,18 @@ const YourComponent = {
       }
       console.log(123);
     });
-    watch(propsA, (value: number, oldValue: number) => {
+    watch(props.propsA, (value: number, oldValue: number) => {
       console.log(props.propsA, value, oldValue);
+    });
+    watch(data1, () => {
+      console.log(
+        props.propsA,
+        data1.value,
+        data2.value,
+        what.value,
+        why.value,
+        hehe()
+      );
     });
     provide({ provideFoo: "foo", baz: "baz" });
     return { foo, bar, data1, data2, hehe, fooo, what, why };
