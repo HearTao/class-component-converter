@@ -125,9 +125,15 @@ const YourComponent = {
       context.$emit("123", data1.value);
     };
     const fooo = () => {
-      const { propsA, data1, data2, what, why, hehe } = this;
       const { fff } = foo();
-      console.log(propsA, data1, data2, what, why, hehe);
+      console.log(
+        props.propsA,
+        data1.value,
+        data2.value,
+        what.value,
+        why.value,
+        hehe
+      );
     };
     const what = computed(() => {
       return data1.value;
@@ -190,7 +196,7 @@ const YourComponent = {
     - [x] Decorator arguments
     - [x] Wrapper value
     - [x] Property access
-    - [ ] Destruction
+    - [x] Destruction
     - [ ] Emits to callback
     - [ ] Listeners to callback
     - [ ] Slots to callack

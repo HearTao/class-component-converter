@@ -37,10 +37,10 @@ import {
     isClassEemitDeclaration,
     isClassLifeCycleDeclaration,
     isValidComputedDeclaration,
-    isGetter
+    isGetter,
+    skipParens
 } from './helper';
 import { classNeedTransform } from './transform';
-import { pipeline } from 'stream';
 
 function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
     let render: ClassMethodDeclaration | undefined = undefined;
@@ -123,6 +123,8 @@ function classTransformer(
                     );
                 case ts.SyntaxKind.Identifier:
                     return identifierVisitor(node as ts.Identifier);
+                case ts.SyntaxKind.VariableStatement:
+                    return variableStatement(node as ts.VariableStatement);
                 default:
                     return ts.visitEachChild(node, visitor, context);
             }
@@ -153,6 +155,12 @@ function classTransformer(
             return transformIdentifier(
                 ts.visitEachChild(declaration, visitor, context),
                 checker
+            );
+        }
+
+        function variableStatement(declaration: ts.VariableStatement) {
+            return transformVariableStatement(
+                ts.visitEachChild(declaration, visitor, context)
             );
         }
 
@@ -355,9 +363,22 @@ function classTransformer(
             node: ts.ClassDeclaration
         ): ts.ExpressionStatement[] {
             return watchers.map(watcher => {
-                const decl = find(node.members, x => !!(x.name && ts.isIdentifier(x.name) && x.name.text === watcher.watch))
-                const props = decl && isClassPropDeclaration(decl)
-                const watch = props ? ts.createPropertyAccess(ts.createIdentifier('props'), props.name) : ts.createIdentifier(watcher.watch)
+                const decl = find(
+                    node.members,
+                    x =>
+                        !!(
+                            x.name &&
+                            ts.isIdentifier(x.name) &&
+                            x.name.text === watcher.watch
+                        )
+                );
+                const props = decl && isClassPropDeclaration(decl);
+                const watch = props
+                    ? ts.createPropertyAccess(
+                          ts.createIdentifier('props'),
+                          props.name
+                      )
+                    : ts.createIdentifier(watcher.watch);
 
                 return ts.createExpressionStatement(
                     ts.createCall(ts.createIdentifier('watch'), undefined, [
@@ -377,9 +398,8 @@ function classTransformer(
                             )
                         )
                     ])
-                )
-            }
-            );
+                );
+            });
         }
 
         function transformClassEmitDeclaration(
@@ -646,34 +666,97 @@ function classTransformer(
             checker: ts.TypeChecker
         ): ts.Node {
             const symbol = checker.getSymbolAtLocation(node);
-            if (
-                symbol &&
-                symbol.valueDeclaration &&
-                ts.isClassElement(symbol.valueDeclaration) &&
-                symbol.valueDeclaration.name !== node
-            ) {
+            if (symbol && symbol.valueDeclaration) {
                 const declaration = symbol.valueDeclaration;
                 if (
-                    or(isClassComputedDeclaration, isClassStateDeclaration)(
-                        declaration
-                    )
+                    ts.isClassElement(declaration) &&
+                    declaration.name !== node
                 ) {
-                    return ts.createPropertyAccess(
-                        ts.createIdentifier(node.text),
-                        ts.createIdentifier('value')
-                    );
+                    return transformIdentifierMembers(node, declaration);
                 } else if (
-                    !(
-                        ts.isPropertyAccessExpression(node.parent) &&
-                        node.parent.name === node
-                    ) &&
-                    isClassPropDeclaration(declaration)
+                    ts.isBindingElement(declaration) &&
+                    ts.isObjectBindingPattern(declaration.parent) &&
+                    ts.isVariableDeclaration(declaration.parent.parent) &&
+                    declaration.parent.parent.name === declaration.parent &&
+                    declaration.parent.parent.initializer &&
+                    skipParens(declaration.parent.parent.initializer).kind ===
+                        ts.SyntaxKind.ThisKeyword
                 ) {
-                    return ts.createPropertyAccess(
-                        ts.createIdentifier('props'),
-                        ts.createIdentifier(node.text)
+                    const typeOfObjectLiteral = checker.getTypeAtLocation(
+                        declaration.parent.parent.initializer
                     );
+                    const originalSymbol =
+                        typeOfObjectLiteral &&
+                        checker.getPropertyOfType(
+                            typeOfObjectLiteral,
+                            node.text
+                        );
+                    if (
+                        originalSymbol &&
+                        originalSymbol.valueDeclaration &&
+                        ts.isClassElement(originalSymbol.valueDeclaration)
+                    ) {
+                        return transformIdentifierMembers(
+                            node,
+                            originalSymbol.valueDeclaration
+                        );
+                    }
                 }
+            }
+
+            return node;
+        }
+
+        function transformVariableStatement(node: ts.VariableStatement) {
+            const list = node.declarationList.declarations
+                .map(transformVariableDeclaration)
+                .filter(isDef);
+            if (list.length) {
+                return ts.createVariableStatement(
+                    node.modifiers,
+                    ts.createVariableDeclarationList(
+                        list,
+                        node.declarationList.flags
+                    )
+                );
+            }
+            return ts.createEmptyStatement();
+        }
+
+        function transformVariableDeclaration(node: ts.VariableDeclaration) {
+            if (
+                node.initializer &&
+                skipParens(node.initializer).kind === ts.SyntaxKind.ThisKeyword
+            ) {
+                return undefined;
+            }
+            return node;
+        }
+
+        function transformIdentifierMembers(
+            node: ts.Identifier,
+            declaration: ts.ClassElement
+        ) {
+            if (
+                or(isClassComputedDeclaration, isClassStateDeclaration)(
+                    declaration
+                )
+            ) {
+                return ts.createPropertyAccess(
+                    ts.createIdentifier(node.text),
+                    ts.createIdentifier('value')
+                );
+            } else if (
+                !(
+                    ts.isPropertyAccessExpression(node.parent) &&
+                    node.parent.name === node
+                ) &&
+                isClassPropDeclaration(declaration)
+            ) {
+                return ts.createPropertyAccess(
+                    ts.createIdentifier('props'),
+                    ts.createIdentifier(node.text)
+                );
             }
             return node;
         }

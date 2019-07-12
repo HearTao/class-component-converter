@@ -160,7 +160,10 @@ export function isClassEemitDeclaration(
             return {
                 decl: node,
                 name: node.name,
-                emit: name && ts.isStringLiteral(name) ? name.text : node.name.text
+                emit:
+                    name && ts.isStringLiteral(name)
+                        ? name.text
+                        : node.name.text
             };
         }
     }
@@ -281,4 +284,17 @@ export function skipParens(node: ts.Expression): ts.Expression {
         node = node.expression;
     }
     return node;
+}
+
+export function findParents<T extends ts.Node>(
+    node: ts.Node,
+    cb: (v: ts.Node) => v is T
+): T | undefined {
+    while (node) {
+        if (cb(node)) {
+            return node;
+        }
+        node = node.parent;
+    }
+    return undefined;
 }
