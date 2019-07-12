@@ -251,8 +251,9 @@ const YourComponent = {
 - [ ] Usages
     <details>
     
-    - [ ] Cli
+    - [X] Cli
     - [ ] Libs
+    - [ ] Webpack
     
     </details>
 
