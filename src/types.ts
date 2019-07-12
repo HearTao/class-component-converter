@@ -48,6 +48,7 @@ export interface ClassWatchDeclaration {
 export interface ClassEmitDeclaration {
     decl: WithBody<ts.MethodDeclaration>;
     name: ts.Identifier;
+    emit: string
 }
 
 export interface Getter {

@@ -159,10 +159,8 @@ export function isClassEemitDeclaration(
             const name = firstOrUndefined(emit.expression.arguments);
             return {
                 decl: node,
-                name:
-                    name && ts.isStringLiteral(name)
-                        ? ts.createIdentifier(name.text)
-                        : node.name
+                name: node.name,
+                emit: name && ts.isStringLiteral(name) ? name.text : node.name.text
             };
         }
     }

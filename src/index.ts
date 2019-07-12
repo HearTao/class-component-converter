@@ -393,7 +393,7 @@ function classTransformer(
                     ts.isReturnStatement
                 );
                 const args = [
-                    ts.createStringLiteral(emit.name.text),
+                    ts.createStringLiteral(emit.emit),
                     ...returnArgs.map(x => x.expression).filter(isDef),
                     ...parameters.map(x => x.name).filter(ts.isIdentifier)
                 ];

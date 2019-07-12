@@ -103,7 +103,7 @@ const YourComponent = {
       data1.value++;
       context.$emit("test");
     };
-    const testtest = () => {
+    const testt = () => {
       data1.value++;
       context.$emit("testtest");
     };
