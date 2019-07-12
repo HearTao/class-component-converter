@@ -19,12 +19,15 @@
   "homepage": "https://github.com/HearTao/class-component-converter#readme",
   "dependencies": {
     "@types/prettier": "^1.16.4",
+    "cardinal": "^2.1.1",
     "memfs": "^2.15.4",
     "prettier": "^1.18.2",
     "ts-node": "^8.3.0",
-    "typescript": "^3.5.2"
+    "typescript": "^3.5.2",
+    "yargs": "^13.2.4"
   },
   "devDependencies": {
-    "@types/node": "^12.6.1"
+    "@types/node": "^12.6.1",
+    "@types/yargs": "^13.0.0"
   }
 }
