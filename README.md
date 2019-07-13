@@ -86,6 +86,12 @@ export default class YourComponent extends Vue {
         }
         console.log(123)
     }
+
+    render () {
+        return (
+            <div>{this.data1}</div>
+        )
+    }
 }
 ```
 
@@ -100,7 +106,7 @@ const YourComponent = {
     context
   ) {
     const foo: string = inject("foo");
-    const bar: string = inject("bar");
+    const injectionBar: string = inject("bar");
     const data1 = value(123);
     const data2 = value(234);
     const test = () => {
@@ -144,7 +150,7 @@ const YourComponent = {
       },
       value => {
         data2.value = value - 1;
-        console.log(foo, this.bar);
+        console.log(foo, injectionBar);
       }
     );
     onMounted(() => {
@@ -167,7 +173,10 @@ const YourComponent = {
       );
     });
     provide({ provideFoo: "foo", baz: "baz" });
-    return { foo, bar, data1, data2, hehe, fooo, what, why };
+    return { foo, injectionBar, data1, data2, hehe, fooo, what, why };
+  },
+  render() {
+    return <div>{this.data1}</div>;
   }
 };
 ```

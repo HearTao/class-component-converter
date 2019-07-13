@@ -79,6 +79,12 @@ export default class YourComponent extends Vue {
         }
         console.log(123)
     }
+
+    render () {
+        return (
+            <div>{this.data1}</div>
+        )
+    }
 }
 `;
 

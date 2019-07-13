@@ -133,11 +133,7 @@ function classTransformer(
 
         function classDeclarationVisitor(declaration: ts.ClassDeclaration) {
             if (classNeedTransform(declaration)) {
-                return ts.visitEachChild(
-                    transformClassDeclaration(declaration),
-                    visitor,
-                    context
-                );
+                return transformClassDeclaration(declaration);
             }
             return ts.visitEachChild(declaration, visitor, context);
         }
@@ -524,6 +520,11 @@ function classTransformer(
             ];
         }
 
+        function transformRenderDeclaration(render: ClassMethodDeclaration) {
+            // TODO: transform tsx
+            return render.decl
+        }
+
         function transformClassDeclaration(
             node: ts.ClassDeclaration
         ): ts.VariableStatement {
@@ -604,7 +605,7 @@ function classTransformer(
                                             ])
                                         )
                                     ],
-                                    render && render.decl
+                                    render && transformRenderDeclaration(render)
                                 )
                             )
                         )
