@@ -472,7 +472,7 @@ function classTransformer(
                         ts.createObjectLiteral(
                             providers.map(provider =>
                                 ts.createPropertyAssignment(
-                                    provider.name,
+                                    provider.provide,
                                     ts.visitEachChild(
                                         provider.decl.initializer,
                                         visitor,
@@ -500,11 +500,7 @@ function classTransformer(
                                 ts.createCall(
                                     ts.createIdentifier('inject'),
                                     undefined,
-                                    [
-                                        ts.createStringLiteral(
-                                            injection.name.text
-                                        )
-                                    ]
+                                    [ts.createStringLiteral(injection.inject)]
                                 )
                             )
                         ],

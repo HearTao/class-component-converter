@@ -1,6 +1,6 @@
 declare module 'cardinal' {
     interface Highlight {
-    (code: string, options?: object): string
+        (code: string, options?: object): string;
     }
-    export var highlight: Highlight
+    export var highlight: Highlight;
 }

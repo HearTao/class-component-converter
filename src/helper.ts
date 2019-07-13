@@ -198,10 +198,11 @@ export function isClassProviderDeclaration(
             const name = firstOrUndefined(provider.expression.arguments);
             return {
                 decl: node,
-                name:
+                name: node.name,
+                provide:
                     name && ts.isStringLiteral(name)
-                        ? ts.createIdentifier(name.text)
-                        : node.name
+                        ? name.text
+                        : node.name.text
             };
         }
     }
@@ -217,10 +218,11 @@ export function isClassInjectionDeclaration(
             const name = firstOrUndefined(injection.expression.arguments);
             return {
                 decl: node,
-                name:
+                name: node.name,
+                inject:
                     name && ts.isStringLiteral(name)
-                        ? ts.createIdentifier(name.text)
-                        : node.name
+                        ? name.text
+                        : node.name.text
             };
         }
     }
