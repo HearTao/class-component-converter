@@ -73,6 +73,11 @@ export default class YourComponent extends Vue {
         console.log(this.propsA, this.data1, this.data2, this.what, this.why, this.hehe())
     }
 
+    @Watch('$route')
+    handleRouteChanged () {
+        console.log(this.$router, this.$route, this.$store, this.$store.getters)
+    }
+
     mounted () {
         if (this.$slots.default) {
             this.$slots.defalult(this.$refs.node)

@@ -80,6 +80,11 @@ export default class YourComponent extends Vue {
         console.log(this.propsA, this.data1, this.data2, this.what, this.why, this.hehe())
     }
 
+    @Watch('$route')
+    handleRouteChanged () {
+        console.log(this.$router, this.$route, this.$store, this.$store.getters)
+    }
+
     mounted () {
         if (this.$slots.default) {
             this.$slots.defalult(this.$refs.node)
@@ -172,6 +177,14 @@ const YourComponent = {
         hehe()
       );
     });
+    watch(context.$route, () => {
+      console.log(
+        context.$router,
+        context.$route,
+        context.$store,
+        context.$store.getters
+      );
+    });
     provide({ provideFoo: "foo", baz: "baz" });
     return { foo, injectionBar, data1, data2, hehe, fooo, what, why };
   },
@@ -226,7 +239,6 @@ const YourComponent = {
     
     - [x] Compiler Host
     - [ ] JavaScript support
-    - [ ] Type annotation transform
     
     </details>
 
@@ -237,15 +249,15 @@ const YourComponent = {
     - [ ] vue-class-component
     - [x] vue-property-decorator
     - [ ] vue-tsx-support
+    - [ ] vuex-class
     
     </details>
 
-- [ ] Vuex & Vue router support
+- [x] Vuex & Vue router support
     <details>
     
-    - [ ] vuex
-    - [ ] vue-router
-    - [ ] vuex-class
+    - [x] vuex
+    - [x] vue-router
     
     </details>
 
@@ -272,6 +284,7 @@ const YourComponent = {
     - [ ] Tests
     - [ ] Codecov
     - [ ] CI
-    - [ ] Lint && Prettier
+    - [x] Lint && Prettier
+    - [ ] Update readme automatic
     
     </details>

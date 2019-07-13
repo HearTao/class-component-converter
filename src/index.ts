@@ -25,7 +25,6 @@ import {
     ComponentInfo
 } from './types';
 import {
-    isWatchDecorator,
     isClassComputedDeclaration,
     isClassStateDeclaration,
     isClassMethodDeclaration,
@@ -41,8 +40,12 @@ import {
     skipParens
 } from './helper';
 import { classNeedTransform } from './transform';
+import { contextProperty } from './constant';
 
-function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
+function collectClassDeclarationInfo(
+    node: ts.ClassDeclaration,
+    checker: ts.TypeChecker
+): ComponentInfo {
     let render: ClassMethodDeclaration | undefined = undefined;
     const computed = new Map<string, ClassComputedDeclaration>();
     const states: ClassStateDeclaration[] = [];
@@ -81,7 +84,7 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
                 })(id, pushIgnored);
             case ts.SyntaxKind.MethodDeclaration:
                 return match(member)(isRenderFunction, mem => (render = mem))(
-                    isClassWatchDeclaration,
+                    isClassWatchDeclaration.bind(null, checker),
                     push(watchers)
                 )(isClassEemitDeclaration, push(emits))(
                     isClassLifeCycleDeclaration,
@@ -355,30 +358,12 @@ function classTransformer(
         }
 
         function transformClassWatchDeclaration(
-            watchers: ReadonlyArray<ClassWatchDeclaration>,
-            node: ts.ClassDeclaration
+            watchers: ReadonlyArray<ClassWatchDeclaration>
         ): ts.ExpressionStatement[] {
             return watchers.map(watcher => {
-                const decl = find(
-                    node.members,
-                    x =>
-                        !!(
-                            x.name &&
-                            ts.isIdentifier(x.name) &&
-                            x.name.text === watcher.watch
-                        )
-                );
-                const props = decl && isClassPropDeclaration(decl);
-                const watch = props
-                    ? ts.createPropertyAccess(
-                          ts.createIdentifier('props'),
-                          props.name
-                      )
-                    : ts.createIdentifier(watcher.watch);
-
                 return ts.createExpressionStatement(
                     ts.createCall(ts.createIdentifier('watch'), undefined, [
-                        watch,
+                        watcher.watch,
                         ts.createArrowFunction(
                             undefined,
                             undefined,
@@ -522,7 +507,7 @@ function classTransformer(
 
         function transformRenderDeclaration(render: ClassMethodDeclaration) {
             // TODO: transform tsx
-            return render.decl
+            return render.decl;
         }
 
         function transformClassDeclaration(
@@ -540,7 +525,7 @@ function classTransformer(
                 providers,
                 injections,
                 ignored
-            } = collectClassDeclarationInfo(node);
+            } = collectClassDeclarationInfo(node, checker);
 
             return ts.createVariableStatement(
                 undefined,
@@ -582,8 +567,7 @@ function classTransformer(
                                                     lifecycles
                                                 ),
                                                 ...transformClassWatchDeclaration(
-                                                    watchers,
-                                                    node
+                                                    watchers
                                                 ),
                                                 ...transformClassProviderDeclaration(
                                                     providers
@@ -620,11 +604,7 @@ function classTransformer(
             checker: ts.TypeChecker
         ): ts.Node {
             if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
-                if (
-                    node.name.text === '$emit' ||
-                    node.name.text === '$refs' ||
-                    node.name.text === '$slots'
-                ) {
+                if (contextProperty.includes(node.name.text)) {
                     return ts.createPropertyAccess(
                         ts.createIdentifier('context'),
                         node.name

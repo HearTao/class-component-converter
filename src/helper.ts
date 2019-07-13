@@ -19,6 +19,7 @@ import {
     WithInitializer
 } from './types';
 import { some, find, first, firstOrUndefined } from './utils';
+import { contextProperty } from './constant';
 
 export function isVueClass(type: ts.ExpressionWithTypeArguments): boolean {
     return ts.isIdentifier(type.expression) && type.expression.text === 'Vue';
@@ -124,8 +125,11 @@ export function isRenderFunction(
 }
 
 export function isClassWatchDeclaration(
+    checker: ts.TypeChecker,
     node: ts.ClassElement
 ): ClassWatchDeclaration | undefined {
+    const type = checker.getTypeAtLocation(node.parent);
+
     if (
         ts.isMethodDeclaration(node) &&
         withBody(node) &&
@@ -138,12 +142,35 @@ export function isClassWatchDeclaration(
                 return {
                     decl: node,
                     name: node.name,
-                    watch: watchValue.text
+                    watch: checkWatchValue(watchValue.text)
                 };
             }
         }
     }
     return undefined;
+
+    function checkWatchValue(propName: string) {
+        if (contextProperty.includes(propName)) {
+            return ts.createPropertyAccess(
+                ts.createIdentifier('context'),
+                ts.createIdentifier(propName)
+            );
+        }
+        const prop = type.getProperty(propName);
+        if (
+            prop &&
+            prop.valueDeclaration &&
+            ts.isClassElement(prop.valueDeclaration) &&
+            isClassPropDeclaration(prop.valueDeclaration)
+        ) {
+            return ts.createPropertyAccess(
+                ts.createIdentifier('props'),
+                ts.createIdentifier(propName)
+            );
+        }
+
+        return ts.createIdentifier(propName);
+    }
 }
 
 export function isClassEemitDeclaration(
