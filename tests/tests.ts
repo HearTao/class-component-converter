@@ -83,6 +83,11 @@ export default class YourComponent extends Vue {
             this.$slots.defalult(this.$refs.node)
         }
         console.log(123)
+
+        const self = this
+        self.fooo()
+        console.log(self.propsA)
+        console.log(self.$route)
     }
 
     render () {

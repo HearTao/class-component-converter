@@ -8,7 +8,8 @@ import {
     push,
     match,
     id,
-    find
+    find,
+    mapDef
 } from './utils';
 import createVHost from './host';
 import {
@@ -599,39 +600,95 @@ function classTransformer(
             );
         }
 
+        function transformPropertyAccessName(
+            node: ts.PropertyAccessExpression,
+            declaration: ts.Declaration | undefined
+        ) {
+            if (contextProperty.includes(node.name.text)) {
+                return ts.createPropertyAccess(
+                    ts.createIdentifier('context'),
+                    node.name
+                );
+            }
+            if (declaration && ts.isClassElement(declaration)) {
+                if (
+                    or(
+                        isClassComputedDeclaration,
+                        isClassStateDeclaration,
+                        isClassMethodDeclaration,
+                        isClassInjectionDeclaration
+                    )(declaration)
+                ) {
+                    return node.name;
+                } else if (isClassPropDeclaration(declaration)) {
+                    return ts.createPropertyAccess(
+                        ts.createIdentifier('props'),
+                        node.name
+                    );
+                }
+            }
+
+            return node;
+        }
+
+        function trackOriginalFromAssignment(
+            node: ts.VariableDeclaration
+        ): ts.Declaration | undefined {
+            while (node && ts.isVariableDeclaration(node) && node.initializer) {
+                const symbol = checker.getSymbolAtLocation(node.initializer);
+                if (symbol && symbol.valueDeclaration) {
+                    if (ts.isVariableDeclaration(symbol.valueDeclaration)) {
+                        node = symbol.valueDeclaration;
+                    } else {
+                        return node;
+                    }
+                }
+            }
+            return undefined;
+        }
+
         function transformPropertyAccessExpression(
             node: ts.PropertyAccessExpression,
             checker: ts.TypeChecker
         ): ts.Node {
             if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
-                if (contextProperty.includes(node.name.text)) {
-                    return ts.createPropertyAccess(
-                        ts.createIdentifier('context'),
-                        node.name
-                    );
-                }
-                const symbol = checker.getSymbolAtLocation(node);
+                return transformPropertyAccessName(
+                    node,
+                    mapDef(
+                        checker.getSymbolAtLocation(node),
+                        symbol => symbol.valueDeclaration
+                    )
+                );
+            }
+
+            const symbol = checker.getSymbolAtLocation(node.expression);
+            if (
+                symbol &&
+                symbol.valueDeclaration &&
+                ts.isVariableDeclaration(symbol.valueDeclaration)
+            ) {
+                const original = trackOriginalFromAssignment(
+                    symbol.valueDeclaration
+                );
                 if (
-                    symbol &&
-                    symbol.valueDeclaration &&
-                    ts.isClassElement(symbol.valueDeclaration)
+                    original &&
+                    ts.isVariableDeclaration(original) &&
+                    original.initializer &&
+                    original.initializer.kind === ts.SyntaxKind.ThisKeyword
                 ) {
-                    const declaration = symbol.valueDeclaration;
-                    if (
-                        or(
-                            isClassComputedDeclaration,
-                            isClassStateDeclaration,
-                            isClassMethodDeclaration,
-                            isClassInjectionDeclaration
-                        )(declaration)
-                    ) {
-                        return node.name;
-                    } else if (isClassPropDeclaration(declaration)) {
-                        return ts.createPropertyAccess(
-                            ts.createIdentifier('props'),
-                            node.name
-                        );
-                    }
+                    return transformPropertyAccessName(
+                        node,
+                        mapDef(
+                            checker.getSymbolAtLocation(original.initializer),
+                            symbol =>
+                                mapDef(
+                                    symbol.members &&
+                                        symbol.members.get(node.name
+                                            .text as ts.__String),
+                                    s => s.valueDeclaration
+                                )
+                        )
+                    );
                 }
             }
 

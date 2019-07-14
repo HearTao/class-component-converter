@@ -90,6 +90,11 @@ export default class YourComponent extends Vue {
             this.$slots.defalult(this.$refs.node)
         }
         console.log(123)
+
+        const self = this
+        self.fooo()
+        console.log(self.propsA)
+        console.log(self.$route)
     }
 
     render () {
@@ -163,6 +168,9 @@ const YourComponent = {
         context.$slots.defalult(context.$refs.node);
       }
       console.log(123);
+      fooo();
+      console.log(props.propsA);
+      console.log(context.$route);
     });
     watch(props.propsA, (value: number, oldValue: number) => {
       console.log(props.propsA, value, oldValue);
@@ -219,6 +227,7 @@ const YourComponent = {
     - [x] Wrapper value
     - [x] Property access
     - [x] Destruction
+    - [x] This assignment
     - [ ] Emits to callback
     - [ ] Listeners to callback
     - [ ] Slots to callack

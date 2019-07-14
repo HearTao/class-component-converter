@@ -14,7 +14,7 @@ export function find<T>(
     return (items && items.find(cb)) || undefined;
 }
 
-export function isDef<T>(v: T | undefined): v is T {
+export function isDef<T>(v: T | null | undefined): v is T {
     return v !== undefined && v !== null;
 }
 
@@ -108,4 +108,14 @@ export function push<T>(items: T[]) {
     return function(x: T) {
         items.push(x);
     };
+}
+
+export function mapDef<T, U>(
+    v: T | undefined | null,
+    cb: (v: T) => U
+): U | undefined {
+    if (isDef(v)) {
+        return cb(v);
+    }
+    return undefined;
 }
