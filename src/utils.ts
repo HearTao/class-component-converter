@@ -48,6 +48,10 @@ export function cast<T, U extends T>(value: T, cb: (v: T) => v is U): U {
     return value;
 }
 
+export function length<T>(items: ReadonlyArray<T> | null | undefined): number {
+    return (items && items.length) || 0;
+}
+
 export function first<T>(items: ReadonlyArray<T>): T {
     if (!items.length) {
         throw new Error('out of range');

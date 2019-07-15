@@ -2,8 +2,11 @@ import { convert } from '../src';
 import * as prettier from 'prettier';
 
 const code = `
+import { Component as Comp } from 'vue-tsx-support'
+import { Component, Prop, Emit, Inject, Provide, Watch }  from 'vue-property-decorator'
+
 @Component
-export default class YourComponent extends Vue {
+export default class YourComponent extends Comp<{}> {
     @Prop(Number) readonly propsA: number | undefined
 
     @Emit()

@@ -9,8 +9,11 @@ class-component-converter is a transformer to convert your Vue component to Vue 
 ### Before
 
 ```tsx
+import { Component as Comp } from 'vue-tsx-support'
+import { Component, Prop, Emit, Inject, Provide, Watch }  from 'vue-property-decorator'
+
 @Component
-export default class YourComponent extends Vue {
+export default class YourComponent extends Comp<{}> {
     @Prop(Number) readonly propsA: number | undefined
 
     @Emit()
@@ -108,6 +111,15 @@ export default class YourComponent extends Vue {
 ### After
 
 ```tsx
+import { Component as Comp } from "vue-tsx-support";
+import {
+  Component,
+  Prop,
+  Emit,
+  Inject,
+  Provide,
+  Watch
+} from "vue-property-decorator";
 const YourComponent = {
   steup(
     props: {
@@ -232,6 +244,8 @@ const YourComponent = {
     - [ ] Listeners to callback
     - [ ] Slots to callack
     - [ ] Re-order declarations
+    - [ ] Full project support
+    - [ ] Strict import track
     
     </details>
 
@@ -255,9 +269,9 @@ const YourComponent = {
     <details>
     
     - [ ] raw vue
-    - [ ] vue-class-component
+    - [x] vue-class-component
     - [x] vue-property-decorator
-    - [ ] vue-tsx-support
+    - [x] vue-tsx-support
     - [ ] vuex-class
     
     </details>

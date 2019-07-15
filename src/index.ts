@@ -1,16 +1,5 @@
 import * as ts from 'typescript';
-import {
-    append,
-    or,
-    assertDef,
-    pickOut,
-    isDef,
-    push,
-    match,
-    id,
-    find,
-    mapDef
-} from './utils';
+import { append, or, pickOut, isDef, push, match, id, mapDef } from './utils';
 import createVHost from './host';
 import {
     IdentifierName,
@@ -64,10 +53,13 @@ function collectClassDeclarationInfo(
         switch (member.kind) {
             case ts.SyntaxKind.PropertyDeclaration:
                 return match(member)(isClassStateDeclaration, push(states))(
-                    isClassPropDeclaration,
+                    isClassPropDeclaration.bind(null, checker),
                     push(props)
-                )(isClassProviderDeclaration, push(providers))(
-                    isClassInjectionDeclaration,
+                )(
+                    isClassProviderDeclaration.bind(null, checker),
+                    push(providers)
+                )(
+                    isClassInjectionDeclaration.bind(null, checker),
                     push(injections)
                 )(id, pushIgnored);
 
@@ -87,7 +79,7 @@ function collectClassDeclarationInfo(
                 return match(member)(isRenderFunction, mem => (render = mem))(
                     isClassWatchDeclaration.bind(null, checker),
                     push(watchers)
-                )(isClassEemitDeclaration, push(emits))(
+                )(isClassEemitDeclaration.bind(null, checker), push(emits))(
                     isClassLifeCycleDeclaration,
                     push(lifecycles)
                 )(isClassMethodDeclaration, push(methods))(id, pushIgnored);
@@ -136,7 +128,7 @@ function classTransformer(
         return n => ts.visitNode(n, visitor);
 
         function classDeclarationVisitor(declaration: ts.ClassDeclaration) {
-            if (classNeedTransform(declaration)) {
+            if (classNeedTransform(declaration, checker)) {
                 return transformClassDeclaration(declaration);
             }
             return ts.visitEachChild(declaration, visitor, context);
@@ -616,11 +608,11 @@ function classTransformer(
                         isClassComputedDeclaration,
                         isClassStateDeclaration,
                         isClassMethodDeclaration,
-                        isClassInjectionDeclaration
+                        isClassInjectionDeclaration.bind(null, checker)
                     )(declaration)
                 ) {
                     return node.name;
-                } else if (isClassPropDeclaration(declaration)) {
+                } else if (isClassPropDeclaration(checker, declaration)) {
                     return ts.createPropertyAccess(
                         ts.createIdentifier('props'),
                         node.name
@@ -785,7 +777,7 @@ function classTransformer(
                     ts.isPropertyAccessExpression(node.parent) &&
                     node.parent.name === node
                 ) &&
-                isClassPropDeclaration(declaration)
+                isClassPropDeclaration(checker, declaration)
             ) {
                 return ts.createPropertyAccess(
                     ts.createIdentifier('props'),

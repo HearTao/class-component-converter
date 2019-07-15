@@ -18,56 +18,136 @@ import {
     Initializer,
     WithInitializer
 } from './types';
-import { some, find, first, firstOrUndefined } from './utils';
-import { contextProperty } from './constant';
+import { some, find, first, firstOrUndefined, length } from './utils';
+import {
+    contextProperty,
+    vueClassSupport,
+    vueComponentSupport,
+    vuePropertyDecorator
+} from './constant';
+import { check } from 'prettier';
 
-export function isVueClass(type: ts.ExpressionWithTypeArguments): boolean {
-    return ts.isIdentifier(type.expression) && type.expression.text === 'Vue';
+export function isVueClass(
+    type: ts.ExpressionWithTypeArguments,
+    checker: ts.TypeChecker
+): boolean {
+    const symbol = checker.getSymbolAtLocation(type.expression);
+    if (symbol && length(symbol.declarations)) {
+        const importDeclaration = findParents(
+            first(symbol.declarations),
+            ts.isImportDeclaration
+        );
+        if (
+            importDeclaration &&
+            ts.isStringLiteral(importDeclaration.moduleSpecifier) &&
+            vueClassSupport.includes(importDeclaration.moduleSpecifier.text)
+        ) {
+            return true;
+        }
+    }
+    return false;
 }
 
-export function isComponentDecorator(expr: ts.Decorator): boolean {
-    return (
-        ts.isIdentifier(expr.expression) && expr.expression.text === 'Component'
-    );
+export function isComponentDecorator(
+    expr: ts.Decorator,
+    checker: ts.TypeChecker
+): boolean {
+    const symbol = checker.getSymbolAtLocation(expr.expression);
+    if (symbol && length(symbol.declarations)) {
+        const importDeclaration = findParents(
+            first(symbol.declarations),
+            ts.isImportDeclaration
+        );
+        if (
+            importDeclaration &&
+            ts.isStringLiteral(importDeclaration.moduleSpecifier) &&
+            vueComponentSupport.includes(importDeclaration.moduleSpecifier.text)
+        ) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
-export function isPropsDecorator(expr: ts.Decorator): boolean {
+export function isInsidePropertyDecorator(
+    expr: ts.Expression,
+    checker: ts.TypeChecker
+): boolean {
+    const symbol = checker.getSymbolAtLocation(expr);
+    if (symbol && length(symbol.declarations)) {
+        const importDeclaration = findParents(
+            first(symbol.declarations),
+            ts.isImportDeclaration
+        );
+        if (
+            importDeclaration &&
+            ts.isStringLiteral(importDeclaration.moduleSpecifier) &&
+            importDeclaration.moduleSpecifier.text === vuePropertyDecorator
+        ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+export function isPropsDecorator(
+    expr: ts.Decorator,
+    checker: ts.TypeChecker
+): boolean {
     return (
         ts.isCallExpression(expr.expression) &&
         ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Prop'
+        expr.expression.expression.text === 'Prop' &&
+        isInsidePropertyDecorator(expr.expression.expression, checker)
     );
 }
 
-export function isWatchDecorator(expr: ts.Decorator): boolean {
+export function isWatchDecorator(
+    expr: ts.Decorator,
+    checker: ts.TypeChecker
+): boolean {
     return (
         ts.isCallExpression(expr.expression) &&
         ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Watch'
+        expr.expression.expression.text === 'Watch' &&
+        isInsidePropertyDecorator(expr.expression.expression, checker)
     );
 }
 
-export function isEmitDecorator(expr: ts.Decorator): boolean {
+export function isEmitDecorator(
+    expr: ts.Decorator,
+    checker: ts.TypeChecker
+): boolean {
     return (
         ts.isCallExpression(expr.expression) &&
         ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Emit'
+        expr.expression.expression.text === 'Emit' &&
+        isInsidePropertyDecorator(expr.expression.expression, checker)
     );
 }
 
-export function isProviderDecorator(expr: ts.Decorator): boolean {
+export function isProviderDecorator(
+    expr: ts.Decorator,
+    checker: ts.TypeChecker
+): boolean {
     return (
         ts.isCallExpression(expr.expression) &&
         ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Provide'
+        expr.expression.expression.text === 'Provide' &&
+        isInsidePropertyDecorator(expr.expression.expression, checker)
     );
 }
 
-export function isInjectionDecorator(expr: ts.Decorator): boolean {
+export function isInjectionDecorator(
+    expr: ts.Decorator,
+    checker: ts.TypeChecker
+): boolean {
     return (
         ts.isCallExpression(expr.expression) &&
         ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Inject'
+        expr.expression.expression.text === 'Inject' &&
+        isInsidePropertyDecorator(expr.expression.expression, checker)
     );
 }
 
@@ -135,21 +215,23 @@ export function isClassWatchDeclaration(
         withBody(node) &&
         ts.isIdentifier(node.name)
     ) {
-        const watch = find(node.decorators, isWatchDecorator);
+        const watch = find(node.decorators, decorator =>
+            isWatchDecorator(decorator, checker)
+        );
         if (watch && ts.isCallExpression(watch.expression)) {
             const watchValue = firstOrUndefined(watch.expression.arguments);
             if (watchValue && ts.isStringLiteralLike(watchValue)) {
                 return {
                     decl: node,
                     name: node.name,
-                    watch: checkWatchValue(watchValue.text)
+                    watch: checkWatchValue(watchValue.text, checker)
                 };
             }
         }
     }
     return undefined;
 
-    function checkWatchValue(propName: string) {
+    function checkWatchValue(propName: string, checker: ts.TypeChecker) {
         if (contextProperty.includes(propName)) {
             return ts.createPropertyAccess(
                 ts.createIdentifier('context'),
@@ -161,7 +243,7 @@ export function isClassWatchDeclaration(
             prop &&
             prop.valueDeclaration &&
             ts.isClassElement(prop.valueDeclaration) &&
-            isClassPropDeclaration(prop.valueDeclaration)
+            isClassPropDeclaration(checker, prop.valueDeclaration)
         ) {
             return ts.createPropertyAccess(
                 ts.createIdentifier('props'),
@@ -174,6 +256,7 @@ export function isClassWatchDeclaration(
 }
 
 export function isClassEemitDeclaration(
+    checker: ts.TypeChecker,
     node: ts.ClassElement
 ): ClassEmitDeclaration | undefined {
     if (
@@ -181,7 +264,9 @@ export function isClassEemitDeclaration(
         withBody(node) &&
         ts.isIdentifier(node.name)
     ) {
-        const emit = find(node.decorators, isEmitDecorator);
+        const emit = find(node.decorators, decorator =>
+            isEmitDecorator(decorator, checker)
+        );
         if (emit && ts.isCallExpression(emit.expression)) {
             const name = firstOrUndefined(emit.expression.arguments);
             return {
@@ -198,11 +283,14 @@ export function isClassEemitDeclaration(
 }
 
 export function isClassPropDeclaration(
+    checker: ts.TypeChecker,
     node: ts.ClassElement
 ): ClassPropDeclaration | undefined {
     if (
         ts.isPropertyDeclaration(node) &&
-        some(node.decorators, isPropsDecorator) &&
+        some(node.decorators, decorator =>
+            isPropsDecorator(decorator, checker)
+        ) &&
         ts.isIdentifier(node.name)
     ) {
         return {
@@ -213,6 +301,7 @@ export function isClassPropDeclaration(
 }
 
 export function isClassProviderDeclaration(
+    checker: ts.TypeChecker,
     node: ts.ClassElement
 ): ClassProviderDeclaration | undefined {
     if (
@@ -220,7 +309,9 @@ export function isClassProviderDeclaration(
         withInitializer(node) &&
         ts.isIdentifier(node.name)
     ) {
-        const provider = find(node.decorators, isProviderDecorator);
+        const provider = find(node.decorators, decorator =>
+            isProviderDecorator(decorator, checker)
+        );
         if (provider && ts.isCallExpression(provider.expression)) {
             const name = firstOrUndefined(provider.expression.arguments);
             return {
@@ -237,10 +328,13 @@ export function isClassProviderDeclaration(
 }
 
 export function isClassInjectionDeclaration(
+    checker: ts.TypeChecker,
     node: ts.ClassElement
 ): ClassInjectDeclaration | undefined {
     if (ts.isPropertyDeclaration(node) && ts.isIdentifier(node.name)) {
-        const injection = find(node.decorators, isInjectionDecorator);
+        const injection = find(node.decorators, decorator =>
+            isInjectionDecorator(decorator, checker)
+        );
         if (injection && ts.isCallExpression(injection.expression)) {
             const name = firstOrUndefined(injection.expression.arguments);
             return {
