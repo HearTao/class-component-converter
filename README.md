@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/HearTao/class-component-converter.svg?branch=master)](https://travis-ci.org/HearTao/class-component-converter)
 [![codecov](https://codecov.io/gh/HearTao/class-component-converter/branch/master/graph/badge.svg)](https://codecov.io/gh/HearTao/class-component-converter)
+[![npm version](https://badge.fury.io/js/class-component-converter.svg)](https://badge.fury.io/js/class-component-converter)
 
 ## WARNING: [WIP]
 
