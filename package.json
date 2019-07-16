@@ -8,8 +8,8 @@
     "class-component-converter": "bin/class-component-converter"
   },
   "scripts": {
-    "build": "NODE_ENV=production npx webpack",
-    "build:dev": "npx webpack",
+    "build": "cross-env NODE_ENV=production webpack",
+    "build:dev": "webpack",
     "test": "ts-node ./tests/tests.ts",
     "prettier": "prettier --config ./prettier.json --write ./src/**/* ./src/* ./tests/**/* ./tests/* ./webpack.config.js"
   },
@@ -41,6 +41,7 @@
     "@types/node": "^12.6.1",
     "@types/prettier": "^1.16.4",
     "@types/yargs": "^13.0.0",
+    "cross-env": "^5.2.0",
     "prettier": "^1.18.2",
     "ts-node": "^8.3.0",
     "webpack": "^4.35.3",
