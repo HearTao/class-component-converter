@@ -25,7 +25,6 @@
   "homepage": "https://github.com/HearTao/class-component-converter#readme",
   "dependencies": {
     "cardinal": "^2.1.1",
-    "cross-env": "^5.2.0",
     "memfs": "^2.15.4",
     "yargs": "^13.2.4"
   },
@@ -42,6 +41,7 @@
     "@types/node": "^12.6.1",
     "@types/prettier": "^1.16.4",
     "@types/yargs": "^13.0.0",
+    "cross-env": "^5.2.0",
     "prettier": "^1.18.2",
     "ts-node": "^8.3.0",
     "webpack": "^4.35.3",
