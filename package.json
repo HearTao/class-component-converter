@@ -10,7 +10,8 @@
   "scripts": {
     "build": "cross-env NODE_ENV=production webpack",
     "build:dev": "webpack",
-    "test": "ts-node ./tests/tests.ts",
+    "test": "jest",
+    "test:co": "jest --coverage",
     "prettier": "prettier --config ./prettier.json --write ./src/**/* ./src/* ./tests/**/* ./tests/* ./webpack.config.js"
   },
   "repository": {
@@ -37,10 +38,12 @@
     "README.md"
   ],
   "devDependencies": {
-    "@types/webpack-merge": "^4.1.5",
+    "@types/jest": "^24.0.15",
     "@types/node": "^12.6.1",
-    "@types/prettier": "^1.16.4",
     "@types/yargs": "^13.0.0",
+    "@types/webpack-merge": "^4.1.5",
+    "jest": "^24.8.0",
+    "ts-jest": "^24.0.2",
     "cross-env": "^5.2.0",
     "prettier": "^1.18.2",
     "ts-node": "^8.3.0",
@@ -52,5 +55,9 @@
   },
   "peerDependencies": {
     "typescript": "^3.5.2"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node"
   }
 }

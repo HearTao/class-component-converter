@@ -1,0 +1,44 @@
+language: node_js
+
+node_js:
+  - 'node'
+
+sudo: false
+
+codecov: true
+
+before_install:
+  - curl -o- -L https://yarnpkg.com/install.sh | bash -s
+  - export PATH="$HOME/.yarn/bin:$PATH"
+  - npm install -g codecov
+
+install:
+  - yarn
+
+cache:
+  yarn: true
+  directories:
+    - node_modules
+
+stages:
+  - test
+
+jobs:
+  include:
+    - stage: test
+      script:
+        - yarn run test
+      on:
+        branch: master
+
+    - stage: coverage
+      if: branch = master
+      script:
+        - yarn run test:co
+        - codecov
+
+matrix:
+  fast_finish: true
+
+git:
+  depth: 1

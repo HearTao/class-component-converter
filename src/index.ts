@@ -105,7 +105,7 @@ function collectClassDeclarationInfo(
 const stateIdentifier = 'value';
 const computedIdentifier = 'computed';
 
-function classTransformer(
+export function classTransformer(
     checker: ts.TypeChecker
 ): ts.TransformerFactory<ts.SourceFile> {
     return context => {
