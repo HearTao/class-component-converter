@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "ts-node ./tests/tests.ts",
+    "test": "jest",
+    "test:co": "jest --coverage",
     "prettier": "prettier --config ./prettier.json --write ./src/**/* ./src/* ./tests/**/* ./tests/* "
   },
   "repository": {

@@ -1,0 +1,35 @@
+language: node_js
+
+node_js:
+  - 'node'
+
+sudo: false
+
+install:
+  - yarn
+
+cache:
+  directories:
+    - node_modules
+
+stages:
+  - test
+
+jobs:
+  include:
+    - stage: test
+      script:
+        - yarn run test
+      on:
+        branch: master
+
+    - stage: coverage
+      if: branch = master
+      script:
+        - yarn run test:co
+
+matrix:
+  fast_finish: true
+
+git:
+  depth: 1
