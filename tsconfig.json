@@ -5,10 +5,14 @@
         "moduleResolution": "node",
         "strict": true,
         "alwaysStrict": true,
-        "outDir": "lib",
-        "sourceMap": true
+        "outDir": "./libs",
+        "sourceMap": true,
+        "declaration": true,
+        "rootDir": "./src",
+        "declarationDir": "./libs/types/",
+        "declarationMap": true
     },
-    "exclude": [
-        "example"
+    "include": [
+        "./src/**/*"
     ]
 }

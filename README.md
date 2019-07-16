@@ -9,8 +9,11 @@ class-component-converter is a transformer to convert your Vue component to Vue 
 ### Before
 
 ```tsx
+import { Component as Comp } from 'vue-tsx-support'
+import { Component, Prop, Emit, Inject, Provide, Watch }  from 'vue-property-decorator'
+
 @Component
-export default class YourComponent extends Vue {
+export default class YourComponent extends Comp<{}> {
     @Prop(Number) readonly propsA: number | undefined
 
     @Emit()
@@ -53,7 +56,7 @@ export default class YourComponent extends Vue {
 
     set why (value) {
         this.data2 = value - 1
-        console.log(this.foo, this.bar)
+        console.log(this.foo, this.injectionBar)
     }
 
     hehe() {
@@ -80,11 +83,27 @@ export default class YourComponent extends Vue {
         console.log(this.propsA, this.data1, this.data2, this.what, this.why, this.hehe())
     }
 
+    @Watch('$route')
+    handleRouteChanged () {
+        console.log(this.$router, this.$route, this.$store, this.$store.getters)
+    }
+
     mounted () {
         if (this.$slots.default) {
             this.$slots.defalult(this.$refs.node)
         }
         console.log(123)
+
+        const self = this
+        self.fooo()
+        console.log(self.propsA)
+        console.log(self.$route)
+    }
+
+    render () {
+        return (
+            <div>{this.data1}</div>
+        )
     }
 }
 ```
@@ -92,6 +111,15 @@ export default class YourComponent extends Vue {
 ### After
 
 ```tsx
+import { Component as Comp } from "vue-tsx-support";
+import {
+  Component,
+  Prop,
+  Emit,
+  Inject,
+  Provide,
+  Watch
+} from "vue-property-decorator";
 const YourComponent = {
   steup(
     props: {
@@ -100,7 +128,7 @@ const YourComponent = {
     context
   ) {
     const foo: string = inject("foo");
-    const bar: string = inject("bar");
+    const injectionBar: string = inject("bar");
     const data1 = value(123);
     const data2 = value(234);
     const test = () => {
@@ -144,7 +172,7 @@ const YourComponent = {
       },
       value => {
         data2.value = value - 1;
-        console.log(foo, this.bar);
+        console.log(foo, injectionBar);
       }
     );
     onMounted(() => {
@@ -152,6 +180,9 @@ const YourComponent = {
         context.$slots.defalult(context.$refs.node);
       }
       console.log(123);
+      fooo();
+      console.log(props.propsA);
+      console.log(context.$route);
     });
     watch(props.propsA, (value: number, oldValue: number) => {
       console.log(props.propsA, value, oldValue);
@@ -166,8 +197,19 @@ const YourComponent = {
         hehe()
       );
     });
+    watch(context.$route, () => {
+      console.log(
+        context.$router,
+        context.$route,
+        context.$store,
+        context.$store.getters
+      );
+    });
     provide({ provideFoo: "foo", baz: "baz" });
-    return { foo, bar, data1, data2, hehe, fooo, what, why };
+    return { foo, injectionBar, data1, data2, hehe, fooo, what, why };
+  },
+  render() {
+    return <div>{this.data1}</div>;
   }
 };
 ```
@@ -197,10 +239,13 @@ const YourComponent = {
     - [x] Wrapper value
     - [x] Property access
     - [x] Destruction
+    - [x] This assignment
     - [ ] Emits to callback
     - [ ] Listeners to callback
     - [ ] Slots to callack
     - [ ] Re-order declarations
+    - [ ] Full project support
+    - [ ] Strict import track
     
     </details>
 
@@ -217,7 +262,6 @@ const YourComponent = {
     
     - [x] Compiler Host
     - [ ] JavaScript support
-    - [ ] Type annotation transform
     
     </details>
 
@@ -225,18 +269,18 @@ const YourComponent = {
     <details>
     
     - [ ] raw vue
-    - [ ] vue-class-component
+    - [x] vue-class-component
     - [x] vue-property-decorator
-    - [ ] vue-tsx-support
+    - [x] vue-tsx-support
+    - [ ] vuex-class
     
     </details>
 
-- [ ] Vuex & Vue router support
+- [x] Vuex & Vue router support
     <details>
     
-    - [ ] vuex
-    - [ ] vue-router
-    - [ ] vuex-class
+    - [x] vuex
+    - [x] vue-router
     
     </details>
 
@@ -263,6 +307,7 @@ const YourComponent = {
     - [ ] Tests
     - [ ] Codecov
     - [ ] CI
-    - [ ] Lint && Prettier
+    - [x] Lint && Prettier
+    - [ ] Update readme automatic
     
     </details>

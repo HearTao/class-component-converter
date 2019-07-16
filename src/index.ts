@@ -1,15 +1,5 @@
 import * as ts from 'typescript';
-import {
-    append,
-    or,
-    assertDef,
-    pickOut,
-    isDef,
-    push,
-    match,
-    id,
-    find
-} from './utils';
+import { append, or, pickOut, isDef, push, match, id, mapDef } from './utils';
 import createVHost from './host';
 import {
     IdentifierName,
@@ -25,7 +15,6 @@ import {
     ComponentInfo
 } from './types';
 import {
-    isWatchDecorator,
     isClassComputedDeclaration,
     isClassStateDeclaration,
     isClassMethodDeclaration,
@@ -41,8 +30,12 @@ import {
     skipParens
 } from './helper';
 import { classNeedTransform } from './transform';
+import { contextProperty } from './constant';
 
-function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
+function collectClassDeclarationInfo(
+    node: ts.ClassDeclaration,
+    checker: ts.TypeChecker
+): ComponentInfo {
     let render: ClassMethodDeclaration | undefined = undefined;
     const computed = new Map<string, ClassComputedDeclaration>();
     const states: ClassStateDeclaration[] = [];
@@ -60,10 +53,13 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
         switch (member.kind) {
             case ts.SyntaxKind.PropertyDeclaration:
                 return match(member)(isClassStateDeclaration, push(states))(
-                    isClassPropDeclaration,
+                    isClassPropDeclaration.bind(null, checker),
                     push(props)
-                )(isClassProviderDeclaration, push(providers))(
-                    isClassInjectionDeclaration,
+                )(
+                    isClassProviderDeclaration.bind(null, checker),
+                    push(providers)
+                )(
+                    isClassInjectionDeclaration.bind(null, checker),
                     push(injections)
                 )(id, pushIgnored);
 
@@ -81,9 +77,9 @@ function collectClassDeclarationInfo(node: ts.ClassDeclaration): ComponentInfo {
                 })(id, pushIgnored);
             case ts.SyntaxKind.MethodDeclaration:
                 return match(member)(isRenderFunction, mem => (render = mem))(
-                    isClassWatchDeclaration,
+                    isClassWatchDeclaration.bind(null, checker),
                     push(watchers)
-                )(isClassEemitDeclaration, push(emits))(
+                )(isClassEemitDeclaration.bind(null, checker), push(emits))(
                     isClassLifeCycleDeclaration,
                     push(lifecycles)
                 )(isClassMethodDeclaration, push(methods))(id, pushIgnored);
@@ -132,12 +128,8 @@ export function classTransformer(
         return n => ts.visitNode(n, visitor);
 
         function classDeclarationVisitor(declaration: ts.ClassDeclaration) {
-            if (classNeedTransform(declaration)) {
-                return ts.visitEachChild(
-                    transformClassDeclaration(declaration),
-                    visitor,
-                    context
-                );
+            if (classNeedTransform(declaration, checker)) {
+                return transformClassDeclaration(declaration);
             }
             return ts.visitEachChild(declaration, visitor, context);
         }
@@ -359,30 +351,12 @@ export function classTransformer(
         }
 
         function transformClassWatchDeclaration(
-            watchers: ReadonlyArray<ClassWatchDeclaration>,
-            node: ts.ClassDeclaration
+            watchers: ReadonlyArray<ClassWatchDeclaration>
         ): ts.ExpressionStatement[] {
             return watchers.map(watcher => {
-                const decl = find(
-                    node.members,
-                    x =>
-                        !!(
-                            x.name &&
-                            ts.isIdentifier(x.name) &&
-                            x.name.text === watcher.watch
-                        )
-                );
-                const props = decl && isClassPropDeclaration(decl);
-                const watch = props
-                    ? ts.createPropertyAccess(
-                          ts.createIdentifier('props'),
-                          props.name
-                      )
-                    : ts.createIdentifier(watcher.watch);
-
                 return ts.createExpressionStatement(
                     ts.createCall(ts.createIdentifier('watch'), undefined, [
-                        watch,
+                        watcher.watch,
                         ts.createArrowFunction(
                             undefined,
                             undefined,
@@ -472,7 +446,7 @@ export function classTransformer(
                         ts.createObjectLiteral(
                             providers.map(provider =>
                                 ts.createPropertyAssignment(
-                                    provider.name,
+                                    provider.provide,
                                     ts.visitEachChild(
                                         provider.decl.initializer,
                                         visitor,
@@ -500,11 +474,7 @@ export function classTransformer(
                                 ts.createCall(
                                     ts.createIdentifier('inject'),
                                     undefined,
-                                    [
-                                        ts.createStringLiteral(
-                                            injection.name.text
-                                        )
-                                    ]
+                                    [ts.createStringLiteral(injection.inject)]
                                 )
                             )
                         ],
@@ -528,6 +498,11 @@ export function classTransformer(
             ];
         }
 
+        function transformRenderDeclaration(render: ClassMethodDeclaration) {
+            // TODO: transform tsx
+            return render.decl;
+        }
+
         function transformClassDeclaration(
             node: ts.ClassDeclaration
         ): ts.VariableStatement {
@@ -543,7 +518,7 @@ export function classTransformer(
                 providers,
                 injections,
                 ignored
-            } = collectClassDeclarationInfo(node);
+            } = collectClassDeclarationInfo(node, checker);
 
             return ts.createVariableStatement(
                 undefined,
@@ -585,8 +560,7 @@ export function classTransformer(
                                                     lifecycles
                                                 ),
                                                 ...transformClassWatchDeclaration(
-                                                    watchers,
-                                                    node
+                                                    watchers
                                                 ),
                                                 ...transformClassProviderDeclaration(
                                                     providers
@@ -608,7 +582,7 @@ export function classTransformer(
                                             ])
                                         )
                                     ],
-                                    render && render.decl
+                                    render && transformRenderDeclaration(render)
                                 )
                             )
                         )
@@ -618,43 +592,95 @@ export function classTransformer(
             );
         }
 
+        function transformPropertyAccessName(
+            node: ts.PropertyAccessExpression,
+            declaration: ts.Declaration | undefined
+        ) {
+            if (contextProperty.includes(node.name.text)) {
+                return ts.createPropertyAccess(
+                    ts.createIdentifier('context'),
+                    node.name
+                );
+            }
+            if (declaration && ts.isClassElement(declaration)) {
+                if (
+                    or(
+                        isClassComputedDeclaration,
+                        isClassStateDeclaration,
+                        isClassMethodDeclaration,
+                        isClassInjectionDeclaration.bind(null, checker)
+                    )(declaration)
+                ) {
+                    return node.name;
+                } else if (isClassPropDeclaration(checker, declaration)) {
+                    return ts.createPropertyAccess(
+                        ts.createIdentifier('props'),
+                        node.name
+                    );
+                }
+            }
+
+            return node;
+        }
+
+        function trackOriginalFromAssignment(
+            node: ts.VariableDeclaration
+        ): ts.Declaration | undefined {
+            while (node && ts.isVariableDeclaration(node) && node.initializer) {
+                const symbol = checker.getSymbolAtLocation(node.initializer);
+                if (symbol && symbol.valueDeclaration) {
+                    if (ts.isVariableDeclaration(symbol.valueDeclaration)) {
+                        node = symbol.valueDeclaration;
+                    } else {
+                        return node;
+                    }
+                }
+            }
+            return undefined;
+        }
+
         function transformPropertyAccessExpression(
             node: ts.PropertyAccessExpression,
             checker: ts.TypeChecker
         ): ts.Node {
             if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
+                return transformPropertyAccessName(
+                    node,
+                    mapDef(
+                        checker.getSymbolAtLocation(node),
+                        symbol => symbol.valueDeclaration
+                    )
+                );
+            }
+
+            const symbol = checker.getSymbolAtLocation(node.expression);
+            if (
+                symbol &&
+                symbol.valueDeclaration &&
+                ts.isVariableDeclaration(symbol.valueDeclaration)
+            ) {
+                const original = trackOriginalFromAssignment(
+                    symbol.valueDeclaration
+                );
                 if (
-                    node.name.text === '$emit' ||
-                    node.name.text === '$refs' ||
-                    node.name.text === '$slots'
+                    original &&
+                    ts.isVariableDeclaration(original) &&
+                    original.initializer &&
+                    original.initializer.kind === ts.SyntaxKind.ThisKeyword
                 ) {
-                    return ts.createPropertyAccess(
-                        ts.createIdentifier('context'),
-                        node.name
+                    return transformPropertyAccessName(
+                        node,
+                        mapDef(
+                            checker.getSymbolAtLocation(original.initializer),
+                            symbol =>
+                                mapDef(
+                                    symbol.members &&
+                                        symbol.members.get(node.name
+                                            .text as ts.__String),
+                                    s => s.valueDeclaration
+                                )
+                        )
                     );
-                }
-                const symbol = checker.getSymbolAtLocation(node);
-                if (
-                    symbol &&
-                    symbol.valueDeclaration &&
-                    ts.isClassElement(symbol.valueDeclaration)
-                ) {
-                    const declaration = symbol.valueDeclaration;
-                    if (
-                        or(
-                            isClassComputedDeclaration,
-                            isClassStateDeclaration,
-                            isClassMethodDeclaration,
-                            isClassInjectionDeclaration
-                        )(declaration)
-                    ) {
-                        return node.name;
-                    } else if (isClassPropDeclaration(declaration)) {
-                        return ts.createPropertyAccess(
-                            ts.createIdentifier('props'),
-                            node.name
-                        );
-                    }
                 }
             }
 
@@ -751,7 +777,7 @@ export function classTransformer(
                     ts.isPropertyAccessExpression(node.parent) &&
                     node.parent.name === node
                 ) &&
-                isClassPropDeclaration(declaration)
+                isClassPropDeclaration(checker, declaration)
             ) {
                 return ts.createPropertyAccess(
                     ts.createIdentifier('props'),

@@ -1,17 +1,19 @@
-import * as yargs from 'yargs'
-import * as prettier from 'prettier'
-import * as fs from 'fs'
-import * as path from 'path'
-import { highlight } from 'cardinal'
-import { convert } from './'
+import * as yargs from 'yargs';
+import * as prettier from 'prettier';
+import * as fs from 'fs';
+import * as path from 'path';
+import { convert } from './';
+
+// TODO: color support
+// import { highlight } from 'cardinal';
 
 interface Options {
-    output?: string,
-    color: boolean
+    output?: string;
+    // color: boolean;
 }
 
 export default async function main(): Promise<void> {
-     const args: yargs.Arguments<Options> = yargs
+    const args: yargs.Arguments<Options> = yargs
         .strict()
         .usage(`$0 <input> [options]`)
         .option(`output`, {
@@ -20,34 +22,35 @@ export default async function main(): Promise<void> {
             description: `Output to file`,
             default: undefined
         })
-        .option(`color`, {
-            type: `boolean`,
-            description: `Colorful output`,
-            default: true
-        })
+        // .option(`color`, {
+        //     type: `boolean`,
+        //     description: `Colorful output`,
+        //     default: true
+        // })
         .version()
         .alias(`v`, `version`)
         .showHelpOnFail(true, `Specify --help for available options`)
         .help(`h`)
-        .alias(`h`, `help`)
-        .argv
+        .alias(`h`, `help`).argv;
 
-    const { _, output, color } = args
-    if(0 === _.length) throw makeNoInputProvideError()
-    const input: string = _[0]
-    const content: string = fs.readFileSync(path.resolve(input), `utf-8`)
-    const result: string = convert(content)
+    const { _, output, color } = args;
+    if (0 === _.length) throw makeNoInputProvideError();
+    const input: string = _[0];
+    const content: string = fs.readFileSync(path.resolve(input), `utf-8`);
+    const result: string = convert(content);
 
-    if(undefined === output) {
-        const formatted = prettier.format(result, { parser: `typescript` })
-        console.log(color ? highlight(formatted) : formatted)
+    if (undefined === output) {
+        const formatted = prettier.format(result, { parser: `typescript` });
+
+        // console.log(color ? highlight(formatted, { jsx: true }) : formatted);
+        console.log(formatted);
     } else {
-        fs.writeFileSync(output, result, `utf-8`)
+        fs.writeFileSync(output, result, `utf-8`);
     }
 }
 
 function makeNoInputProvideError(): Error {
-    return new Error(`No input file provide`)
+    return new Error(`No input file provide`);
 }
 
-main()
+main();

@@ -2,8 +2,11 @@ import { convert } from '../src';
 import * as prettier from 'prettier';
 
 const code = `
+import { Component as Comp } from 'vue-tsx-support'
+import { Component, Prop, Emit, Inject, Provide, Watch }  from 'vue-property-decorator'
+
 @Component
-export default class YourComponent extends Vue {
+export default class YourComponent extends Comp<{}> {
     @Prop(Number) readonly propsA: number | undefined
 
     @Emit()
@@ -46,7 +49,7 @@ export default class YourComponent extends Vue {
 
     set why (value) {
         this.data2 = value - 1
-        console.log(this.foo, this.bar)
+        console.log(this.foo, this.injectionBar)
     }
 
     hehe() {
@@ -73,11 +76,27 @@ export default class YourComponent extends Vue {
         console.log(this.propsA, this.data1, this.data2, this.what, this.why, this.hehe())
     }
 
+    @Watch('$route')
+    handleRouteChanged () {
+        console.log(this.$router, this.$route, this.$store, this.$store.getters)
+    }
+
     mounted () {
         if (this.$slots.default) {
             this.$slots.defalult(this.$refs.node)
         }
         console.log(123)
+
+        const self = this
+        self.fooo()
+        console.log(self.propsA)
+        console.log(self.$route)
+    }
+
+    render () {
+        return (
+            <div>{this.data1}</div>
+        )
     }
 }
 `;

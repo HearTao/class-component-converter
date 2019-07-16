@@ -22,11 +22,13 @@ export interface ClassPropDeclaration {
 export interface ClassProviderDeclaration {
     decl: WithInitializer<ts.PropertyDeclaration>;
     name: ts.Identifier;
+    provide: string;
 }
 
 export interface ClassInjectDeclaration {
     decl: ts.PropertyDeclaration;
     name: ts.Identifier;
+    inject: string;
 }
 
 export interface ClassLifeCycleDeclaration {
@@ -42,7 +44,7 @@ export interface ClassMethodDeclaration {
 export interface ClassWatchDeclaration {
     decl: WithBody<ts.MethodDeclaration>;
     name: ts.Identifier;
-    watch: string;
+    watch: ts.Expression;
 }
 
 export interface ClassEmitDeclaration {
