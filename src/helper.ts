@@ -1,6 +1,5 @@
 import * as ts from 'typescript';
 import {
-    IdentifierName,
     ClassStateDeclaration,
     ClassMethodDeclaration,
     ClassWatchDeclaration,
@@ -25,7 +24,6 @@ import {
     vueComponentSupport,
     vuePropertyDecorator
 } from './constant';
-import { check } from 'prettier';
 
 export function isVueClass(
     type: ts.ExpressionWithTypeArguments,
