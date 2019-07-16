@@ -27,7 +27,14 @@
     "yargs": "^13.2.4"
   },
   "devDependencies": {
+    "@types/jest": "^24.0.15",
     "@types/node": "^12.6.1",
-    "@types/yargs": "^13.0.0"
+    "@types/yargs": "^13.0.0",
+    "jest": "^24.8.0",
+    "ts-jest": "^24.0.2"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node"
   }
 }
