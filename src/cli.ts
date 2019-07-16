@@ -2,12 +2,14 @@ import * as yargs from 'yargs';
 import * as prettier from 'prettier';
 import * as fs from 'fs';
 import * as path from 'path';
-import { highlight } from 'cardinal';
 import { convert } from './';
+
+// TODO: color support
+// import { highlight } from 'cardinal';
 
 interface Options {
     output?: string;
-    color: boolean;
+    // color: boolean;
 }
 
 export default async function main(): Promise<void> {
@@ -20,11 +22,11 @@ export default async function main(): Promise<void> {
             description: `Output to file`,
             default: undefined
         })
-        .option(`color`, {
-            type: `boolean`,
-            description: `Colorful output`,
-            default: true
-        })
+        // .option(`color`, {
+        //     type: `boolean`,
+        //     description: `Colorful output`,
+        //     default: true
+        // })
         .version()
         .alias(`v`, `version`)
         .showHelpOnFail(true, `Specify --help for available options`)
@@ -39,7 +41,9 @@ export default async function main(): Promise<void> {
 
     if (undefined === output) {
         const formatted = prettier.format(result, { parser: `typescript` });
-        console.log(color ? highlight(formatted, { jsx: true }) : formatted);
+
+        // console.log(color ? highlight(formatted, { jsx: true }) : formatted);
+        console.log(formatted);
     } else {
         fs.writeFileSync(output, result, `utf-8`);
     }
