@@ -10,6 +10,7 @@ codecov: true
 before_install:
   - curl -o- -L https://yarnpkg.com/install.sh | bash -s
   - export PATH="$HOME/.yarn/bin:$PATH"
+  - npm install -g codecov
 
 install:
   - yarn
@@ -34,6 +35,7 @@ jobs:
       if: branch = master
       script:
         - yarn run test:co
+        - codecov
 
 matrix:
   fast_finish: true
