@@ -8,8 +8,8 @@
     "class-component-converter": "bin/class-component-converter"
   },
   "scripts": {
-    "build": "NODE_ENV=production npx webpack",
-    "build:dev": "npx webpack",
+    "build": "cross-env NODE_ENV=production webpack",
+    "build:dev": "webpack",
     "test": "ts-node ./tests/tests.ts",
     "prettier": "prettier --config ./prettier.json --write ./src/**/* ./src/* ./tests/**/* ./tests/* ./webpack.config.js"
   },
@@ -25,6 +25,7 @@
   "homepage": "https://github.com/HearTao/class-component-converter#readme",
   "dependencies": {
     "cardinal": "^2.1.1",
+    "cross-env": "^5.2.0",
     "memfs": "^2.15.4",
     "yargs": "^13.2.4"
   },
