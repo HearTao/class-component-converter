@@ -8,10 +8,10 @@
     "class-component-converter": "bin/class-component-converter"
   },
   "scripts": {
+    "build": "cross-env NODE_ENV=production webpack",
+    "build:dev": "webpack",
     "test": "jest",
     "test:co": "jest --coverage",
-    "build": "NODE_ENV=production npx webpack",
-    "build:dev": "npx webpack",
     "prettier": "prettier --config ./prettier.json --write ./src/**/* ./src/* ./tests/**/* ./tests/* ./webpack.config.js"
   },
   "repository": {
@@ -44,6 +44,8 @@
     "@types/webpack-merge": "^4.1.5",
     "jest": "^24.8.0",
     "ts-jest": "^24.0.2",
+    "cross-env": "^5.2.0",
+    "prettier": "^1.18.2",
     "ts-node": "^8.3.0",
     "webpack": "^4.35.3",
     "webpack-cli": "^3.3.6",
