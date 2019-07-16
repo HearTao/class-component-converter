@@ -1,7 +1,16 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`snap 1`] = `
-"const YourComponent = {
+"import { Component as Comp } from \\"vue-tsx-support\\";
+import {
+  Component,
+  Prop,
+  Emit,
+  Inject,
+  Provide,
+  Watch
+} from \\"vue-property-decorator\\";
+const YourComponent = {
   steup(
     props: {
       propsA: number | undefined;
@@ -9,7 +18,7 @@ exports[`snap 1`] = `
     context
   ) {
     const foo: string = inject(\\"foo\\");
-    const bar: string = inject(\\"bar\\");
+    const injectionBar: string = inject(\\"bar\\");
     const data1 = value(123);
     const data2 = value(234);
     const test = () => {
@@ -53,7 +62,7 @@ exports[`snap 1`] = `
       },
       value => {
         data2.value = value - 1;
-        console.log(foo, this.bar);
+        console.log(foo, injectionBar);
       }
     );
     onMounted(() => {
@@ -61,6 +70,9 @@ exports[`snap 1`] = `
         context.$slots.defalult(context.$refs.node);
       }
       console.log(123);
+      fooo();
+      console.log(props.propsA);
+      console.log(context.$route);
     });
     watch(props.propsA, (value: number, oldValue: number) => {
       console.log(props.propsA, value, oldValue);
@@ -75,8 +87,19 @@ exports[`snap 1`] = `
         hehe()
       );
     });
+    watch(context.$route, () => {
+      console.log(
+        context.$router,
+        context.$route,
+        context.$store,
+        context.$store.getters
+      );
+    });
     provide({ provideFoo: \\"foo\\", baz: \\"baz\\" });
-    return { foo, bar, data1, data2, hehe, fooo, what, why };
+    return { foo, injectionBar, data1, data2, hehe, fooo, what, why };
+  },
+  render() {
+    return <div>{this.data1}</div>;
   }
 };
 "
