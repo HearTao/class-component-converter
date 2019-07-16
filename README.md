@@ -1,5 +1,7 @@
 # class-component-converter
 
+[![Build Status](https://travis-ci.org/HearTao/class-component-converter.svg?branch=master)](https://travis-ci.org/HearTao/class-component-converter)
+
 ## WARNING: [WIP]
 
 class-component-converter is a transformer to convert your Vue component to Vue functional api.
