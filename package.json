@@ -1,11 +1,17 @@
 {
   "name": "class-component-converter",
   "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
+  "description": "Transform your vue class component to functional api",
+  "main": "libs/index.js",
+  "types": "libs/types/index.d.ts",
+  "bin": {
+    "class-component-converter": "bin/class-component-converter"
+  },
   "scripts": {
+    "build": "NODE_ENV=production npx webpack",
+    "build:dev": "npx webpack",
     "test": "ts-node ./tests/tests.ts",
-    "prettier": "prettier --config ./prettier.json --write ./src/**/* ./src/* ./tests/**/* ./tests/* "
+    "prettier": "prettier --config ./prettier.json --write ./src/**/* ./src/* ./tests/**/* ./tests/* ./webpack.config.js"
   },
   "repository": {
     "type": "git",
@@ -18,16 +24,32 @@
   },
   "homepage": "https://github.com/HearTao/class-component-converter#readme",
   "dependencies": {
-    "@types/prettier": "^1.16.4",
     "cardinal": "^2.1.1",
     "memfs": "^2.15.4",
-    "prettier": "^1.18.2",
-    "ts-node": "^8.3.0",
-    "typescript": "^3.5.2",
     "yargs": "^13.2.4"
   },
+  "files": [
+    "src",
+    "libs",
+    "bin",
+    "LICENSE",
+    "package.json",
+    "README.md"
+  ],
   "devDependencies": {
+    "@types/webpack-merge": "^4.1.5",
     "@types/node": "^12.6.1",
-    "@types/yargs": "^13.0.0"
+    "@types/prettier": "^1.16.4",
+    "@types/yargs": "^13.0.0",
+    "prettier": "^1.18.2",
+    "ts-node": "^8.3.0",
+    "webpack": "^4.35.3",
+    "webpack-cli": "^3.3.6",
+    "webpack-merge": "^4.2.1",
+    "ts-loader": "^6.0.4",
+    "typescript": "^3.5.2"
+  },
+  "peerDependencies": {
+    "typescript": "^3.5.2"
   }
 }

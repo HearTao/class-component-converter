@@ -39,7 +39,7 @@ export default async function main(): Promise<void> {
 
     if (undefined === output) {
         const formatted = prettier.format(result, { parser: `typescript` });
-        console.log(color ? highlight(formatted) : formatted);
+        console.log(color ? highlight(formatted, { jsx: true }) : formatted);
     } else {
         fs.writeFileSync(output, result, `utf-8`);
     }
