@@ -1,8 +1,8 @@
-import * as webpack from 'webpack'
-import * as path from 'path'
-import * as merge from 'webpack-merge'
+import * as webpack from 'webpack';
+import * as path from 'path';
+import * as merge from 'webpack-merge';
 
-const isDev: boolean = process.env.NODE_ENV !== 'production'
+const isDev: boolean = process.env.NODE_ENV !== 'production';
 
 const base: webpack.Configuration = {
     mode: isDev ? 'development' : 'production',
@@ -26,7 +26,7 @@ const base: webpack.Configuration = {
     optimization: {
         minimize: !isDev
     }
-}
+};
 
 const umd: webpack.Configuration = merge(base, {
     name: `umd`,
@@ -35,7 +35,7 @@ const umd: webpack.Configuration = merge(base, {
         library: 'tsCreator',
         libraryTarget: 'umd'
     }
-})
+});
 
 const standalone: webpack.Configuration = merge(umd, {
     name: `standalone`,
@@ -45,7 +45,7 @@ const standalone: webpack.Configuration = merge(umd, {
     externals: {
         typescript: 'ts'
     }
-})
+});
 
 const web: webpack.Configuration = merge(umd, {
     name: `web`,
@@ -56,7 +56,7 @@ const web: webpack.Configuration = merge(umd, {
     externals: {
         typescript: 'ts'
     }
-})
+});
 
 const bundle: webpack.Configuration = merge.strategy({
     externals: 'replace'
@@ -69,7 +69,7 @@ const bundle: webpack.Configuration = merge.strategy({
     optimization: {
         minimize: false
     }
-})
+});
 
 const cli: webpack.Configuration = merge(umd, {
     name: `cli`,
@@ -97,7 +97,7 @@ const cli: webpack.Configuration = merge(umd, {
             }
         ]
     }
-})
+});
 
 const targetTable: { [key: string]: webpack.Configuration } = {
     umd,
@@ -105,27 +105,31 @@ const targetTable: { [key: string]: webpack.Configuration } = {
     web,
     bundle,
     cli
-}
+};
 
 export default function WebpackConfig(env?: { [key: string]: string }) {
     return env && env.target
         ? resolveTargets(env.target)
-        : Object.values(targetTable) 
-
+        : Object.values(targetTable);
 }
 
 function resolveTargets(targets: string): webpack.Configuration[] {
-    return targets.trim().split(',').map(target => {
-        const str: string = target.trim()
-        const ret: webpack.Configuration | undefined = targetTable[str]
-        if(undefined === ret) throw makeUnsupportsTargetError(str)
-        return ret
-    })
+    return targets
+        .trim()
+        .split(',')
+        .map(target => {
+            const str: string = target.trim();
+            const ret: webpack.Configuration | undefined = targetTable[str];
+            if (undefined === ret) throw makeUnsupportsTargetError(str);
+            return ret;
+        });
 }
 
 function makeUnsupportsTargetError(target: string): Error {
     return new Error(`\
 Unsupports target "${target}", should be one of:
-${Object.keys(targetTable).map(s => `  - ` + s).join('\n')}
-`)
+${Object.keys(targetTable)
+    .map(s => `  - ` + s)
+    .join('\n')}
+`);
 }
