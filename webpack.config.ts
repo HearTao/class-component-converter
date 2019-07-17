@@ -1,11 +1,10 @@
-const path = require('path');
-const merge = require('webpack-merge');
+import * as webpack from 'webpack'
+import * as path from 'path'
+import * as merge from 'webpack-merge'
 
-const isDev = process.env.NODE_ENV !== 'production';
+const isDev: boolean = process.env.NODE_ENV !== 'production'
 
-module.exports = [];
-
-module.exports.base = {
+const base: webpack.Configuration = {
     mode: isDev ? 'development' : 'production',
     target: 'node',
     entry: './src/index.ts',
@@ -27,26 +26,29 @@ module.exports.base = {
     optimization: {
         minimize: !isDev
     }
-};
+}
 
-module.exports.umd = merge(module.exports.base, {
+const umd: webpack.Configuration = merge(base, {
+    name: `umd`,
     output: {
         filename: 'index.js',
         library: 'tsCreator',
         libraryTarget: 'umd'
     }
-});
+})
 
-module.exports.standalone = merge(module.exports.umd, {
+const standalone: webpack.Configuration = merge(umd, {
+    name: `standalone`,
     output: {
         filename: 'index.standalone.js'
     },
     externals: {
         typescript: 'ts'
     }
-});
+})
 
-module.exports.web = merge(module.exports.umd, {
+const web: webpack.Configuration = merge(umd, {
+    name: `web`,
     target: 'web',
     output: {
         filename: 'index.web.js'
@@ -54,11 +56,12 @@ module.exports.web = merge(module.exports.umd, {
     externals: {
         typescript: 'ts'
     }
-});
+})
 
-module.exports.bundle = merge.strategy({
+const bundle: webpack.Configuration = merge.strategy({
     externals: 'replace'
-})(module.exports.web, {
+})(web, {
+    name: `bundle`,
     output: {
         filename: 'index.bundle.js'
     },
@@ -66,14 +69,14 @@ module.exports.bundle = merge.strategy({
     optimization: {
         minimize: false
     }
-});
+})
 
-module.exports.cli = merge(module.exports.umd, {
+const cli: webpack.Configuration = merge(umd, {
+    name: `cli`,
     entry: './src/cli.ts',
     node: false,
     output: {
         filename: 'cli.js',
-        library: 'tsCreatorCli',
         libraryTarget: 'commonjs2'
     },
     externals: ['yargs', 'cardinal', 'prettier', 'get-stdin', './'],
@@ -94,12 +97,35 @@ module.exports.cli = merge(module.exports.umd, {
             }
         ]
     }
-});
+})
 
-module.exports.push(
-    module.exports.umd,
-    module.exports.standalone,
-    module.exports.web,
-    module.exports.bundle,
-    module.exports.cli
-);
+const targetTable: { [key: string]: webpack.Configuration } = {
+    umd,
+    standalone,
+    web,
+    bundle,
+    cli
+}
+
+export default function WebpackConfig(env?: { [key: string]: string }) {
+    return env && env.target
+        ? resolveTargets(env.target)
+        : Object.values(targetTable) 
+
+}
+
+function resolveTargets(targets: string): webpack.Configuration[] {
+    return targets.trim().split(',').map(target => {
+        const str: string = target.trim()
+        const ret: webpack.Configuration | undefined = targetTable[str]
+        if(undefined === ret) throw makeUnsupportsTargetError(str)
+        return ret
+    })
+}
+
+function makeUnsupportsTargetError(target: string): Error {
+    return new Error(`\
+Unsupports target "${target}", should be one of:
+${Object.keys(targetTable).map(s => `  - ` + s).join('\n')}
+`)
+}
