@@ -2,6 +2,8 @@
 
 <div align=center>
 
+<img src="./assets/logo.svg" width="120" alt="${name}" />
+
 # ${name}
 
 _${description}_
