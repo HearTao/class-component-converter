@@ -14,6 +14,7 @@
     "test:co": "jest --coverage",
     "test:update": "jest -u",
     "test:dev": "ts-node ./tests/tests.ts",
+    "lint": "prettier --config ./prettier.json --list-different ./src/**/* ./src/* ./tests/**/* ./tests/* ./webpack.config.ts",
     "prettier": "prettier --config ./prettier.json --write ./src/**/* ./src/* ./tests/**/* ./tests/* ./webpack.config.ts",
     "gen:readme": "ts-node ./scripts/readme-gen.ts"
   },

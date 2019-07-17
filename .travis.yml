@@ -27,6 +27,7 @@ jobs:
   include:
     - stage: test
       script:
+        - yarn run lint
         - yarn run test
       on:
         branch: master
