@@ -22,9 +22,9 @@ class-component-converter is a transformer to convert your Vue component to Vue 
 
 ## Example
 
-## Before
+### Before
 
-```ts
+```tsx
 import { Component as Comp } from "vue-tsx-support";
 import {
   Component,
@@ -137,9 +137,9 @@ export default class YourComponent extends Comp<{}> {
 
 ```
 
-## After
+### After
 
-```ts
+```tsx
 import { Component as Comp } from "vue-tsx-support";
 import {
   Component,

@@ -12,7 +12,8 @@
     "build:dev": "webpack",
     "test": "jest",
     "test:co": "jest --coverage",
-    "prettier": "prettier --config ./prettier.json --write ./src/**/* ./src/* ./tests/**/* ./tests/* ./webpack.config.js"
+    "prettier": "prettier --config ./prettier.json --write ./src/**/* ./src/* ./tests/**/* ./tests/* ./webpack.config.js",
+    "gen:readme": "ts-node ./scripts/readme-gen.ts"
   },
   "repository": {
     "type": "git",
