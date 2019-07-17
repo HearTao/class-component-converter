@@ -12,7 +12,7 @@
     "build:dev": "webpack",
     "test": "jest",
     "test:co": "jest --coverage",
-    "prettier": "prettier --config ./prettier.json --write ./src/**/* ./src/* ./tests/**/* ./tests/* ./webpack.config.js"
+    "prettier": "prettier --config ./prettier.json --write ./src/**/* ./src/* ./tests/**/* ./tests/* ./webpack.config.ts"
   },
   "repository": {
     "type": "git",
