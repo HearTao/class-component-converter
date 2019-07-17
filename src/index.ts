@@ -52,10 +52,10 @@ function collectClassDeclarationInfo(
     node.members.forEach(member => {
         switch (member.kind) {
             case ts.SyntaxKind.PropertyDeclaration:
-                return match(member)(isClassStateDeclaration, push(states))(
-                    isClassPropDeclaration.bind(null, checker),
-                    push(props)
-                )(
+                return match(member)(
+                    isClassStateDeclaration.bind(null, checker),
+                    push(states)
+                )(isClassPropDeclaration.bind(null, checker), push(props))(
                     isClassProviderDeclaration.bind(null, checker),
                     push(providers)
                 )(
@@ -65,24 +65,33 @@ function collectClassDeclarationInfo(
 
             case ts.SyntaxKind.GetAccessor:
             case ts.SyntaxKind.SetAccessor:
-                return match(member)(isClassComputedDeclaration, mem => {
-                    const name = mem.name.text;
-                    let value = computed.get(name);
-                    if (isGetter(mem)) {
-                        value = { ...value, getter: mem };
-                    } else {
-                        value = { ...value, setter: mem };
+                return match(member)(
+                    isClassComputedDeclaration.bind(null, checker),
+                    mem => {
+                        const name = mem.name.text;
+                        let value = computed.get(name);
+                        if (isGetter(mem)) {
+                            value = { ...value, getter: mem };
+                        } else {
+                            value = { ...value, setter: mem };
+                        }
+                        computed.set(name, value);
                     }
-                    computed.set(name, value);
-                })(id, pushIgnored);
+                )(id, pushIgnored);
             case ts.SyntaxKind.MethodDeclaration:
-                return match(member)(isRenderFunction, mem => (render = mem))(
-                    isClassWatchDeclaration.bind(null, checker),
-                    push(watchers)
-                )(isClassEemitDeclaration.bind(null, checker), push(emits))(
-                    isClassLifeCycleDeclaration,
+                return match(member)(
+                    isRenderFunction.bind(null, checker),
+                    mem => (render = mem)
+                )(isClassWatchDeclaration.bind(null, checker), push(watchers))(
+                    isClassEemitDeclaration.bind(null, checker),
+                    push(emits)
+                )(
+                    isClassLifeCycleDeclaration.bind(null, checker),
                     push(lifecycles)
-                )(isClassMethodDeclaration, push(methods))(id, pushIgnored);
+                )(isClassMethodDeclaration.bind(null, checker), push(methods))(
+                    id,
+                    pushIgnored
+                );
             default:
                 return pushIgnored(member);
         }
@@ -605,9 +614,9 @@ export function classTransformer(
             if (declaration && ts.isClassElement(declaration)) {
                 if (
                     or(
-                        isClassComputedDeclaration,
-                        isClassStateDeclaration,
-                        isClassMethodDeclaration,
+                        isClassComputedDeclaration.bind(null, checker),
+                        isClassStateDeclaration.bind(null, checker),
+                        isClassMethodDeclaration.bind(null, checker),
                         isClassInjectionDeclaration.bind(null, checker)
                     )(declaration)
                 ) {
@@ -764,9 +773,10 @@ export function classTransformer(
             declaration: ts.ClassElement
         ) {
             if (
-                or(isClassComputedDeclaration, isClassStateDeclaration)(
-                    declaration
-                )
+                or(
+                    isClassComputedDeclaration.bind(null, checker),
+                    isClassStateDeclaration.bind(null, checker)
+                )(declaration)
             ) {
                 return ts.createPropertyAccess(
                     ts.createIdentifier(node.text),

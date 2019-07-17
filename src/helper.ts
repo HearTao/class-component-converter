@@ -24,6 +24,7 @@ import {
     vueComponentSupport,
     vuePropertyDecorator
 } from './constant';
+import { classNeedTransform } from './transform';
 
 export function isVueClass(
     type: ts.ExpressionWithTypeArguments,
@@ -150,12 +151,14 @@ export function isInjectionDecorator(
 }
 
 export function isClassStateDeclaration(
+    checker: ts.TypeChecker,
     node: ts.ClassElement
 ): ClassStateDeclaration | undefined {
     if (
         ts.isPropertyDeclaration(node) &&
         !node.decorators &&
-        ts.isIdentifier(node.name)
+        ts.isIdentifier(node.name) &&
+        isComponentMember(checker, node)
     ) {
         return {
             decl: node,
@@ -176,13 +179,15 @@ export function withInitializer<T extends Partial<Initializer>>(
 }
 
 export function isClassMethodDeclaration(
+    checker: ts.TypeChecker,
     node: ts.ClassElement
 ): ClassMethodDeclaration | undefined {
     if (
         ts.isMethodDeclaration(node) &&
         withBody(node) &&
         !node.decorators &&
-        ts.isIdentifier(node.name)
+        ts.isIdentifier(node.name) &&
+        isComponentMember(checker, node)
     ) {
         return {
             decl: node,
@@ -193,9 +198,10 @@ export function isClassMethodDeclaration(
 }
 
 export function isRenderFunction(
+    checker: ts.TypeChecker,
     node: ts.ClassElement
 ): ClassMethodDeclaration | undefined {
-    const result = isClassMethodDeclaration(node);
+    const result = isClassMethodDeclaration(checker, node);
     if (result && result.name.text === 'render') {
         return result;
     }
@@ -348,10 +354,26 @@ export function isClassInjectionDeclaration(
     return undefined;
 }
 
+export function isComponentMember(
+    checker: ts.TypeChecker,
+    node: ts.ClassElement
+): boolean {
+    return (
+        ts.isClassDeclaration(node.parent) &&
+        classNeedTransform(node.parent, checker)
+    );
+}
+
 export function isClassComputedDeclaration(
+    checker: ts.TypeChecker,
     node: ts.ClassElement
 ): Getter | Setter | undefined {
-    if (ts.isAccessor(node) && withBody(node) && ts.isIdentifier(node.name)) {
+    if (
+        ts.isAccessor(node) &&
+        withBody(node) &&
+        ts.isIdentifier(node.name) &&
+        isComponentMember(checker, node)
+    ) {
         return {
             decl: node,
             name: node.name
@@ -378,13 +400,15 @@ const lifecycles = [
     'errorCaptured'
 ];
 export function isClassLifeCycleDeclaration(
+    checker: ts.TypeChecker,
     node: ts.ClassElement
 ): ClassLifeCycleDeclaration | undefined {
     if (
         ts.isMethodDeclaration(node) &&
         withBody(node) &&
         ts.isIdentifier(node.name) &&
-        lifecycles.includes(node.name.text)
+        lifecycles.includes(node.name.text) &&
+        isComponentMember(checker, node)
     ) {
         return {
             decl: node,

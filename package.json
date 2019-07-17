@@ -12,6 +12,7 @@
     "build:dev": "webpack",
     "test": "jest",
     "test:co": "jest --coverage",
+    "test:dev": "ts-node ./tests/tersts.ts",
     "prettier": "prettier --config ./prettier.json --write ./src/**/* ./src/* ./tests/**/* ./tests/* ./webpack.config.ts",
     "gen:readme": "ts-node ./scripts/readme-gen.ts"
   },
