@@ -1,11 +1,11 @@
-## Before
+### Before
 
-```ts
+```tsx
 ${before}
 ```
 
-## After
+### After
 
-```ts
+```tsx
 ${after}
 ```
