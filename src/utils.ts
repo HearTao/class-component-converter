@@ -25,22 +25,6 @@ export function append<T>(to: T[] | undefined, item: T | undefined): T[] {
     return to;
 }
 
-export function not<P extends any[]>(
-    cb: (...args: P) => boolean
-): (...args: P) => boolean {
-    return (...args: P) => {
-        return !cb(...args);
-    };
-}
-
-export function or<P extends any[]>(
-    ...funcs: Array<(...args: P) => unknown>
-): (...args: P) => boolean {
-    return (...args: P) => {
-        return funcs.some(func => func(...args));
-    };
-}
-
 export function cast<T, U extends T>(value: T, cb: (v: T) => v is U): U {
     if (!cb(value)) {
         throw new Error('invalid cast');
@@ -89,23 +73,49 @@ export function pickOut<T, U extends T>(
     return [r2, r1];
 }
 
-export function id<T>(v: T): T {
-    return v;
+export interface IMatcher<T> {
+    case<U>(cb: (v: T) => U | undefined, recv: (v: U) => void): this;
+    otherwise(cb: (v: T) => void): this;
+    exec(): void;
 }
 
-export function match<T>(value: T) {
-    let done: boolean = false;
-    function task<U>(cb: (v: T) => U | undefined, recv: (v: U) => void) {
-        if (!done) {
-            const result = cb(value);
-            if (result) {
-                done = true;
-                recv(result);
+export function matcher<T>(value: T): IMatcher<T> {
+    class Matcher implements IMatcher<T> {
+        private _cases: Array<(v: T) => boolean> = [];
+        private _otherwise: ((v: T) => void) | undefined;
+
+        constructor(private value: T) {}
+
+        case<U>(cb: (v: T) => U | undefined, recv: (v: U) => void): this {
+            this._cases.push(v => {
+                const result = cb(v);
+                if (result) {
+                    recv(result);
+                    return true;
+                }
+                return false;
+            });
+            return this;
+        }
+
+        otherwise(cb: (v: T) => void): this {
+            this._otherwise = cb;
+            return this;
+        }
+
+        exec() {
+            for (let c of this._cases) {
+                if (c(this.value)) {
+                    return;
+                }
+            }
+            if (this._otherwise) {
+                this._otherwise(this.value);
             }
         }
-        return task;
     }
-    return task;
+
+    return new Matcher(value);
 }
 
 export function push<T>(items: T[]) {

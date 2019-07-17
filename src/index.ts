@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import { append, or, pickOut, isDef, push, match, id, mapDef } from './utils';
+import { append, pickOut, isDef, push, mapDef, matcher } from './utils';
 import createVHost from './host';
 import {
     IdentifierName,
@@ -53,46 +53,67 @@ function collectClassDeclarationInfo(
     node.members.forEach(member => {
         switch (member.kind) {
             case ts.SyntaxKind.PropertyDeclaration:
-                return match(member)(
-                    isClassStateDeclaration.bind(null, checker),
-                    push(states)
-                )(isClassPropDeclaration.bind(null, checker), push(props))(
-                    isClassProviderDeclaration.bind(null, checker),
-                    push(providers)
-                )(
-                    isClassInjectionDeclaration.bind(null, checker),
-                    push(injections)
-                )(id, pushIgnored);
-
+                return matcher(member)
+                    .case(
+                        isClassStateDeclaration.bind(null, checker),
+                        push(states)
+                    )
+                    .case(
+                        isClassPropDeclaration.bind(null, checker),
+                        push(props)
+                    )
+                    .case(
+                        isClassProviderDeclaration.bind(null, checker),
+                        push(providers)
+                    )
+                    .case(
+                        isClassInjectionDeclaration.bind(null, checker),
+                        push(injections)
+                    )
+                    .otherwise(pushIgnored)
+                    .exec();
             case ts.SyntaxKind.GetAccessor:
             case ts.SyntaxKind.SetAccessor:
-                return match(member)(
-                    isClassComputedDeclaration.bind(null, checker),
-                    mem => {
-                        const name = mem.name.text;
-                        let value = computed.get(name);
-                        if (isGetter(mem)) {
-                            value = { ...value, getter: mem };
-                        } else {
-                            value = { ...value, setter: mem };
+                return matcher(member)
+                    .case(
+                        isClassComputedDeclaration.bind(null, checker),
+                        mem => {
+                            const name = mem.name.text;
+                            let value = computed.get(name);
+                            if (isGetter(mem)) {
+                                value = { ...value, getter: mem };
+                            } else {
+                                value = { ...value, setter: mem };
+                            }
+                            computed.set(name, value);
                         }
-                        computed.set(name, value);
-                    }
-                )(id, pushIgnored);
+                    )
+                    .otherwise(pushIgnored)
+                    .exec();
             case ts.SyntaxKind.MethodDeclaration:
-                return match(member)(
-                    isRenderFunction.bind(null, checker),
-                    mem => (render = mem)
-                )(isClassWatchDeclaration.bind(null, checker), push(watchers))(
-                    isClassEemitDeclaration.bind(null, checker),
-                    push(emits)
-                )(
-                    isClassLifeCycleDeclaration.bind(null, checker),
-                    push(lifecycles)
-                )(isClassMethodDeclaration.bind(null, checker), push(methods))(
-                    id,
-                    pushIgnored
-                );
+                return matcher(member)
+                    .case(
+                        isRenderFunction.bind(null, checker),
+                        mem => (render = mem)
+                    )
+                    .case(
+                        isClassWatchDeclaration.bind(null, checker),
+                        push(watchers)
+                    )
+                    .case(
+                        isClassEemitDeclaration.bind(null, checker),
+                        push(emits)
+                    )
+                    .case(
+                        isClassLifeCycleDeclaration.bind(null, checker),
+                        push(lifecycles)
+                    )
+                    .case(
+                        isClassMethodDeclaration.bind(null, checker),
+                        push(methods)
+                    )
+                    .otherwise(pushIgnored)
+                    .exec();
             default:
                 return pushIgnored(member);
         }
@@ -627,12 +648,10 @@ export function classTransformer(
                     );
                 }
                 if (
-                    or(
-                        isClassComputedDeclaration.bind(null, checker),
-                        isClassStateDeclaration.bind(null, checker),
-                        isClassMethodDeclaration.bind(null, checker),
-                        isClassInjectionDeclaration.bind(null, checker)
-                    )(declaration)
+                    isClassComputedDeclaration(checker, declaration) ||
+                    isClassStateDeclaration(checker, declaration) ||
+                    isClassMethodDeclaration(checker, declaration) ||
+                    isClassInjectionDeclaration(checker, declaration)
                 ) {
                     return node.name;
                 } else if (isClassPropDeclaration(checker, declaration)) {
@@ -815,10 +834,8 @@ export function classTransformer(
             declaration: ts.ClassElement
         ) {
             if (
-                or(
-                    isClassComputedDeclaration.bind(null, checker),
-                    isClassStateDeclaration.bind(null, checker)
-                )(declaration)
+                isClassComputedDeclaration(checker, declaration) ||
+                isClassStateDeclaration(checker, declaration)
             ) {
                 return ts.createPropertyAccess(
                     ts.createIdentifier(node.text),
