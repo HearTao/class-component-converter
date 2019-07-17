@@ -2,6 +2,8 @@
 
 <div align=center>
 
+<img src="./assets/logo.svg" width="120" alt="class-component-convert" />
+
 # class-component-converter
 
 _Transform your vue class component to functional api_
