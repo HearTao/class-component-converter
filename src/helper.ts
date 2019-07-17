@@ -22,7 +22,10 @@ import {
     contextProperty,
     vueClassSupport,
     vueComponentSupport,
-    vuePropertyDecorator
+    vuePropertyDecorator,
+    lifecycles,
+    Identifiers,
+    Decorators
 } from './constant';
 import { classNeedTransform } from './transform';
 
@@ -97,7 +100,7 @@ export function isPropsDecorator(
     return (
         ts.isCallExpression(expr.expression) &&
         ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Prop' &&
+        expr.expression.expression.text === Decorators.Prop &&
         isInsidePropertyDecorator(expr.expression.expression, checker)
     );
 }
@@ -109,7 +112,7 @@ export function isWatchDecorator(
     return (
         ts.isCallExpression(expr.expression) &&
         ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Watch' &&
+        expr.expression.expression.text === Decorators.Watch &&
         isInsidePropertyDecorator(expr.expression.expression, checker)
     );
 }
@@ -121,7 +124,7 @@ export function isEmitDecorator(
     return (
         ts.isCallExpression(expr.expression) &&
         ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Emit' &&
+        expr.expression.expression.text === Decorators.Emit &&
         isInsidePropertyDecorator(expr.expression.expression, checker)
     );
 }
@@ -133,7 +136,7 @@ export function isProviderDecorator(
     return (
         ts.isCallExpression(expr.expression) &&
         ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Provide' &&
+        expr.expression.expression.text === Decorators.Provide &&
         isInsidePropertyDecorator(expr.expression.expression, checker)
     );
 }
@@ -145,7 +148,7 @@ export function isInjectionDecorator(
     return (
         ts.isCallExpression(expr.expression) &&
         ts.isIdentifier(expr.expression.expression) &&
-        expr.expression.expression.text === 'Inject' &&
+        expr.expression.expression.text === Decorators.Inject &&
         isInsidePropertyDecorator(expr.expression.expression, checker)
     );
 }
@@ -202,7 +205,7 @@ export function isRenderFunction(
     node: ts.ClassElement
 ): ClassMethodDeclaration | undefined {
     const result = isClassMethodDeclaration(checker, node);
-    if (result && result.name.text === 'render') {
+    if (result && result.name.text === Identifiers.render) {
         return result;
     }
     return undefined;
@@ -238,7 +241,7 @@ export function isClassWatchDeclaration(
     function checkWatchValue(propName: string, checker: ts.TypeChecker) {
         if (contextProperty.includes(propName)) {
             return ts.createPropertyAccess(
-                ts.createIdentifier('context'),
+                ts.createIdentifier(Identifiers.context),
                 ts.createIdentifier(propName)
             );
         }
@@ -250,7 +253,7 @@ export function isClassWatchDeclaration(
             isClassPropDeclaration(checker, prop.valueDeclaration)
         ) {
             return ts.createPropertyAccess(
-                ts.createIdentifier('props'),
+                ts.createIdentifier(Identifiers.props),
                 ts.createIdentifier(propName)
             );
         }
@@ -386,19 +389,6 @@ export function isGetter(v: Getter | Setter): v is Getter {
     return ts.isGetAccessor(v.decl);
 }
 
-const lifecycles = [
-    'beforeCreate',
-    'created',
-    'beforeMount',
-    'mounted',
-    'beforeUpdate',
-    'updated',
-    'activated',
-    'deactivated',
-    'beforeDestroy',
-    'destroyed',
-    'errorCaptured'
-];
 export function isClassLifeCycleDeclaration(
     checker: ts.TypeChecker,
     node: ts.ClassElement

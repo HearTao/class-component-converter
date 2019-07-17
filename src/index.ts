@@ -31,7 +31,7 @@ import {
     isComponentMember
 } from './helper';
 import { classNeedTransform } from './transform';
-import { contextProperty } from './constant';
+import { contextProperty, Identifiers } from './constant';
 
 function collectClassDeclarationInfo(
     node: ts.ClassDeclaration,
@@ -112,9 +112,6 @@ function collectClassDeclarationInfo(
     };
 }
 
-const stateIdentifier = 'value';
-const computedIdentifier = 'computed';
-
 export function classTransformer(
     checker: ts.TypeChecker
 ): ts.TransformerFactory<ts.SourceFile> {
@@ -178,7 +175,7 @@ export function classTransformer(
                                 state.name,
                                 state.decl.type,
                                 ts.createCall(
-                                    ts.createIdentifier(stateIdentifier),
+                                    ts.createIdentifier(Identifiers.value),
                                     undefined,
                                     state.decl.initializer && [
                                         ts.visitEachChild(
@@ -203,7 +200,7 @@ export function classTransformer(
                 undefined,
                 undefined,
                 undefined,
-                ts.createIdentifier('props'),
+                ts.createIdentifier(Identifiers.props),
                 undefined,
                 ts.createTypeLiteralNode(
                     props.map(prop =>
@@ -225,7 +222,7 @@ export function classTransformer(
                 undefined,
                 undefined,
                 undefined,
-                ts.createIdentifier('context'),
+                ts.createIdentifier(Identifiers.context),
                 undefined,
                 undefined,
                 undefined
@@ -246,7 +243,9 @@ export function classTransformer(
                                     comp.getter.name.text,
                                     comp.getter.decl.type,
                                     ts.createCall(
-                                        ts.createIdentifier(computedIdentifier),
+                                        ts.createIdentifier(
+                                            Identifiers.computed
+                                        ),
                                         undefined,
                                         append(
                                             [
@@ -365,23 +364,27 @@ export function classTransformer(
         ): ts.ExpressionStatement[] {
             return watchers.map(watcher => {
                 return ts.createExpressionStatement(
-                    ts.createCall(ts.createIdentifier('watch'), undefined, [
-                        watcher.watch,
-                        ts.createArrowFunction(
-                            undefined,
-                            undefined,
-                            watcher.decl.parameters,
-                            undefined,
-                            ts.createToken(
-                                ts.SyntaxKind.EqualsGreaterThanToken
-                            ),
-                            ts.visitEachChild(
-                                watcher.decl.body,
-                                visitor,
-                                context
+                    ts.createCall(
+                        ts.createIdentifier(Identifiers.watch),
+                        undefined,
+                        [
+                            watcher.watch,
+                            ts.createArrowFunction(
+                                undefined,
+                                undefined,
+                                watcher.decl.parameters,
+                                undefined,
+                                ts.createToken(
+                                    ts.SyntaxKind.EqualsGreaterThanToken
+                                ),
+                                ts.visitEachChild(
+                                    watcher.decl.body,
+                                    visitor,
+                                    context
+                                )
                             )
-                        )
-                    ])
+                        ]
+                    )
                 );
             });
         }
@@ -429,9 +432,11 @@ export function classTransformer(
                                             ts.createCall(
                                                 ts.createPropertyAccess(
                                                     ts.createIdentifier(
-                                                        'context'
+                                                        Identifiers.context
                                                     ),
-                                                    ts.createIdentifier('$emit')
+                                                    ts.createIdentifier(
+                                                        Identifiers.$emit
+                                                    )
                                                 ),
                                                 undefined,
                                                 args
@@ -452,20 +457,24 @@ export function classTransformer(
         ): ts.ExpressionStatement[] {
             return [
                 ts.createExpressionStatement(
-                    ts.createCall(ts.createIdentifier('provide'), undefined, [
-                        ts.createObjectLiteral(
-                            providers.map(provider =>
-                                ts.createPropertyAssignment(
-                                    provider.provide,
-                                    ts.visitEachChild(
-                                        provider.decl.initializer,
-                                        visitor,
-                                        context
+                    ts.createCall(
+                        ts.createIdentifier(Identifiers.provide),
+                        undefined,
+                        [
+                            ts.createObjectLiteral(
+                                providers.map(provider =>
+                                    ts.createPropertyAssignment(
+                                        provider.provide,
+                                        ts.visitEachChild(
+                                            provider.decl.initializer,
+                                            visitor,
+                                            context
+                                        )
                                     )
                                 )
                             )
-                        )
-                    ])
+                        ]
+                    )
                 )
             ];
         }
@@ -482,7 +491,7 @@ export function classTransformer(
                                 injection.name,
                                 injection.decl.type,
                                 ts.createCall(
-                                    ts.createIdentifier('inject'),
+                                    ts.createIdentifier(Identifiers.inject),
                                     undefined,
                                     [ts.createStringLiteral(injection.inject)]
                                 )
@@ -544,7 +553,7 @@ export function classTransformer(
                                             undefined,
                                             undefined,
                                             undefined,
-                                            'steup',
+                                            Identifiers.steup,
                                             undefined,
                                             undefined,
                                             [
@@ -613,7 +622,7 @@ export function classTransformer(
             ) {
                 if (contextProperty.includes(node.name.text)) {
                     return ts.createPropertyAccess(
-                        ts.createIdentifier('context'),
+                        ts.createIdentifier(Identifiers.context),
                         node.name
                     );
                 }
@@ -628,7 +637,7 @@ export function classTransformer(
                     return node.name;
                 } else if (isClassPropDeclaration(checker, declaration)) {
                     return ts.createPropertyAccess(
-                        ts.createIdentifier('props'),
+                        ts.createIdentifier(Identifiers.props),
                         node.name
                     );
                 }
@@ -813,7 +822,7 @@ export function classTransformer(
             ) {
                 return ts.createPropertyAccess(
                     ts.createIdentifier(node.text),
-                    ts.createIdentifier('value')
+                    ts.createIdentifier(Identifiers.value)
                 );
             } else if (
                 !(
@@ -823,7 +832,7 @@ export function classTransformer(
                 isClassPropDeclaration(checker, declaration)
             ) {
                 return ts.createPropertyAccess(
-                    ts.createIdentifier('props'),
+                    ts.createIdentifier(Identifiers.props),
                     ts.createIdentifier(node.text)
                 );
             }
