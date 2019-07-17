@@ -2,7 +2,7 @@
 
 <div align=center>
 
-<img src="./assets/logo2.svg" width="200" alt="class-component-convert" />
+<img src="./assets/logo.svg" width="120" alt="class-component-convert" />
 
 # class-component-converter
 
