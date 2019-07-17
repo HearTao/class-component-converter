@@ -40,7 +40,7 @@ const YourComponent = {
     const hehe = () => {
       data1.value++;
       console.log(data1.value, props.propsA);
-      context.$emit(\\"123\\", data1.value);
+      this.$emit(\\"123\\", data1.value);
     };
     const fooo = () => {
       const { fff } = foo();
@@ -66,13 +66,13 @@ const YourComponent = {
       }
     );
     onMounted(() => {
-      if (context.$slots.default) {
-        context.$slots.defalult(context.$refs.node);
+      if (this.$slots.default) {
+        this.$slots.defalult(this.$refs.node);
       }
       console.log(123);
       fooo();
       console.log(props.propsA);
-      console.log(context.$route);
+      console.log(self.$route);
     });
     watch(props.propsA, (value: number, oldValue: number) => {
       console.log(props.propsA, value, oldValue);
@@ -88,12 +88,7 @@ const YourComponent = {
       );
     });
     watch(context.$route, () => {
-      console.log(
-        context.$router,
-        context.$route,
-        context.$store,
-        context.$store.getters
-      );
+      console.log(this.$router, this.$route, this.$store, this.$store.getters);
     });
     provide({ provideFoo: \\"foo\\", baz: \\"baz\\" });
     return { foo, injectionBar, data1, data2, hehe, fooo, what, why };

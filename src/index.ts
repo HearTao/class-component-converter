@@ -27,7 +27,8 @@ import {
     isClassLifeCycleDeclaration,
     isValidComputedDeclaration,
     isGetter,
-    skipParens
+    skipParens,
+    isComponentMember
 } from './helper';
 import { classNeedTransform } from './transform';
 import { contextProperty } from './constant';
@@ -137,7 +138,7 @@ export function classTransformer(
         return n => ts.visitNode(n, visitor);
 
         function classDeclarationVisitor(declaration: ts.ClassDeclaration) {
-            if (classNeedTransform(declaration, checker)) {
+            if (classNeedTransform(checker, declaration)) {
                 return transformClassDeclaration(declaration);
             }
             return ts.visitEachChild(declaration, visitor, context);
@@ -605,13 +606,17 @@ export function classTransformer(
             node: ts.PropertyAccessExpression,
             declaration: ts.Declaration | undefined
         ) {
-            if (contextProperty.includes(node.name.text)) {
-                return ts.createPropertyAccess(
-                    ts.createIdentifier('context'),
-                    node.name
-                );
-            }
-            if (declaration && ts.isClassElement(declaration)) {
+            if (
+                declaration &&
+                ts.isClassElement(declaration) &&
+                isComponentMember(checker, declaration)
+            ) {
+                if (contextProperty.includes(node.name.text)) {
+                    return ts.createPropertyAccess(
+                        ts.createIdentifier('context'),
+                        node.name
+                    );
+                }
                 if (
                     or(
                         isClassComputedDeclaration.bind(null, checker),
@@ -648,6 +653,15 @@ export function classTransformer(
             return undefined;
         }
 
+        function declarationNeedTransform(
+            declaration: ts.Declaration
+        ): boolean {
+            return (
+                ts.isClassDeclaration(declaration) &&
+                classNeedTransform(checker, declaration)
+            );
+        }
+
         function transformPropertyAccessExpression(
             node: ts.PropertyAccessExpression,
             checker: ts.TypeChecker
@@ -677,19 +691,31 @@ export function classTransformer(
                     original.initializer &&
                     original.initializer.kind === ts.SyntaxKind.ThisKeyword
                 ) {
-                    return transformPropertyAccessName(
-                        node,
-                        mapDef(
-                            checker.getSymbolAtLocation(original.initializer),
-                            symbol =>
-                                mapDef(
-                                    symbol.members &&
-                                        symbol.members.get(node.name
-                                            .text as ts.__String),
-                                    s => s.valueDeclaration
-                                )
-                        )
+                    const componentSymbol = checker.getSymbolAtLocation(
+                        original.initializer
                     );
+                    if (
+                        componentSymbol &&
+                        componentSymbol.valueDeclaration &&
+                        declarationNeedTransform(
+                            componentSymbol.valueDeclaration
+                        )
+                    )
+                        return transformPropertyAccessName(
+                            node,
+                            mapDef(
+                                checker.getSymbolAtLocation(
+                                    original.initializer
+                                ),
+                                symbol =>
+                                    mapDef(
+                                        symbol.members &&
+                                            symbol.members.get(node.name
+                                                .text as ts.__String),
+                                        s => s.valueDeclaration
+                                    )
+                            )
+                        );
                 }
             }
 
@@ -763,7 +789,14 @@ export function classTransformer(
                 node.initializer &&
                 skipParens(node.initializer).kind === ts.SyntaxKind.ThisKeyword
             ) {
-                return undefined;
+                const symbol = checker.getSymbolAtLocation(node.initializer);
+                if (
+                    symbol &&
+                    symbol.valueDeclaration &&
+                    declarationNeedTransform(symbol.valueDeclaration)
+                ) {
+                    return undefined;
+                }
             }
             return node;
         }

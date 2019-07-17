@@ -3,8 +3,8 @@ import { some, or } from './utils';
 import { isVueClass, isComponentDecorator } from './helper';
 
 export function classNeedTransform(
-    node: ts.ClassLikeDeclaration,
-    checker: ts.TypeChecker
+    checker: ts.TypeChecker,
+    node: ts.ClassLikeDeclaration
 ): boolean {
     return (
         some(
