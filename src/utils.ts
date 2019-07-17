@@ -89,7 +89,7 @@ export function matcher<T>(value: T): IMatcher<T> {
         case<U>(cb: (v: T) => U | undefined, recv: (v: U) => void): this {
             this._cases.push(v => {
                 const result = cb(v);
-                if (result) {
+                if (isDef(result)) {
                     recv(result);
                     return true;
                 }
