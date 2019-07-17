@@ -360,7 +360,7 @@ export function isComponentMember(
 ): boolean {
     return (
         ts.isClassDeclaration(node.parent) &&
-        classNeedTransform(node.parent, checker)
+        classNeedTransform(checker, node.parent)
     );
 }
 
