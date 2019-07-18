@@ -1,4 +1,4 @@
-import { convert } from '../src';
+import { convert } from '../../src';
 import * as prettier from 'prettier';
 
 const code = `
