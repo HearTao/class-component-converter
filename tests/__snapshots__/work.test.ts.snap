@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`snap 1`] = `
-"import { Component as Comp } from \\"vue-tsx-support\\";
+"import * as tsx from \\"vue-tsx-support\\";
 import {
   Component,
   Prop,

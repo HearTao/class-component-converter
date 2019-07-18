@@ -56,10 +56,37 @@ function defaultImportsEqual(
     return false;
 }
 
+function namespaceImportsEqual(
+    declaration: ts.ImportDeclaration,
+    specifier: ts.Declaration
+) {
+    if (declaration.importClause && declaration.importClause.namedBindings) {
+        if (ts.isNamespaceImport(declaration.importClause.namedBindings)) {
+            return declaration.importClause.namedBindings === specifier
+        }
+    }
+    return false;
+}
+
 export function isVueClass(
     type: ts.ExpressionWithTypeArguments,
     checker: ts.TypeChecker
 ): boolean {
+    if (ts.isPropertyAccessExpression(type.expression)) {
+        const symbol = checker.getSymbolAtLocation(type.expression.expression)
+        if (symbol && length(symbol.declarations)) {
+            const declaration = first(symbol.declarations);
+            const importDeclaration = findParents(
+                declaration,
+                ts.isImportDeclaration
+            );
+            if (importDeclaration && importDeclaration.importClause && ts.isStringLiteral(importDeclaration.moduleSpecifier)) {
+                if (namespaceImportsEqual(importDeclaration, declaration)) {
+                    return true
+                }
+            }
+        }
+    }
     const symbol = checker.getSymbolAtLocation(type.expression);
     if (symbol && length(symbol.declarations)) {
         const declaration = first(symbol.declarations);
