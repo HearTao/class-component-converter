@@ -346,7 +346,8 @@ export function isClassEemitDeclaration(
     if (
         ts.isMethodDeclaration(node) &&
         withBody(node) &&
-        ts.isIdentifier(node.name)
+        ts.isIdentifier(node.name) &&
+        isComponentMember(checker, node)
     ) {
         const emit = find(node.decorators, decorator =>
             isEmitDecorator(decorator, checker)
@@ -375,7 +376,8 @@ export function isClassPropDeclaration(
         some(node.decorators, decorator =>
             isPropsDecorator(decorator, checker)
         ) &&
-        ts.isIdentifier(node.name)
+        ts.isIdentifier(node.name) &&
+        isComponentMember(checker, node)
     ) {
         return {
             decl: node,
@@ -391,7 +393,8 @@ export function isClassProviderDeclaration(
     if (
         ts.isPropertyDeclaration(node) &&
         withInitializer(node) &&
-        ts.isIdentifier(node.name)
+        ts.isIdentifier(node.name) &&
+        isComponentMember(checker, node)
     ) {
         const provider = find(node.decorators, decorator =>
             isProviderDecorator(decorator, checker)
@@ -415,7 +418,11 @@ export function isClassInjectionDeclaration(
     checker: ts.TypeChecker,
     node: ts.ClassElement
 ): ClassInjectDeclaration | undefined {
-    if (ts.isPropertyDeclaration(node) && ts.isIdentifier(node.name)) {
+    if (
+        ts.isPropertyDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        isComponentMember(checker, node)
+    ) {
         const injection = find(node.decorators, decorator =>
             isInjectionDecorator(decorator, checker)
         );
