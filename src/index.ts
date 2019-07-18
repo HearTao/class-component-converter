@@ -71,6 +71,7 @@ export function convert(code: string): string {
     const host = createVHost();
 
     const filename = 'mod.tsx';
+
     host.writeFile(filename, code, false);
 
     const program = ts.createProgram(

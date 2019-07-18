@@ -1,4 +1,4 @@
-import { Component as Comp } from 'vue-tsx-support';
+import * as tsx from 'vue-tsx-support';
 import {
     Component,
     Prop,
@@ -9,7 +9,7 @@ import {
 } from 'vue-property-decorator';
 
 @Component
-export default class YourComponent extends Comp<{}> {
+export default class YourComponent extends tsx.Component<{}> {
     @Prop(Number) readonly propsA: number | undefined;
 
     @Emit()

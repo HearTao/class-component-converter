@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`snap 1`] = `
-"import { Component as Comp } from \\"vue-tsx-support\\";
+"import * as tsx from \\"vue-tsx-support\\";
 import {
   Component,
   Prop,
@@ -17,26 +17,6 @@ const YourComponent = {
     },
     context
   ) {
-    const foo: string = inject(\\"foo\\");
-    const injectionBar: string = inject(\\"bar\\");
-    const data1 = value(123);
-    const data2 = value(234);
-    const test = () => {
-      data1.value++;
-      context.$emit(\\"test\\");
-    };
-    const testt = () => {
-      data1.value++;
-      context.$emit(\\"testtest\\");
-    };
-    const test1 = (v: number) => {
-      data1.value++;
-      context.$emit(\\"test1\\", v);
-    };
-    const test2 = (v: number) => {
-      data1.value++;
-      context.$emit(\\"test2\\", v + 1, v);
-    };
     const hehe = () => {
       data1.value++;
       console.log(data1.value, props.propsA);
@@ -53,6 +33,35 @@ const YourComponent = {
         hehe
       );
     };
+    const test = () => {
+      data1.value++;
+      context.$emit(\\"test\\");
+    };
+    const testt = () => {
+      data1.value++;
+      context.$emit(\\"testtest\\");
+    };
+    const test1 = (v: number) => {
+      data1.value++;
+      context.$emit(\\"test1\\", v);
+    };
+    const test2 = (v: number) => {
+      data1.value++;
+      context.$emit(\\"test2\\", v + 1, v);
+    };
+    onMounted(() => {
+      if (this.$slots.default) {
+        this.$slots.defalult(this.$refs.node);
+      }
+      console.log(123);
+      fooo();
+      console.log(props.propsA);
+      console.log(self.$route);
+    });
+    const foo: string = inject(\\"foo\\");
+    const injectionBar: string = inject(\\"bar\\");
+    const data1 = value(123);
+    const data2 = value(234);
     const what = computed(() => {
       return data1.value;
     });
@@ -65,15 +74,7 @@ const YourComponent = {
         console.log(foo, injectionBar);
       }
     );
-    onMounted(() => {
-      if (this.$slots.default) {
-        this.$slots.defalult(this.$refs.node);
-      }
-      console.log(123);
-      fooo();
-      console.log(props.propsA);
-      console.log(self.$route);
-    });
+    provide({ provideFoo: \\"foo\\", baz: \\"baz\\" });
     watch(props.propsA, (value: number, oldValue: number) => {
       console.log(props.propsA, value, oldValue);
     });
@@ -90,7 +91,6 @@ const YourComponent = {
     watch(context.$route, () => {
       console.log(this.$router, this.$route, this.$store, this.$store.getters);
     });
-    provide({ provideFoo: \\"foo\\", baz: \\"baz\\" });
     return { foo, injectionBar, data1, data2, hehe, fooo, what, why };
   },
   render() {
