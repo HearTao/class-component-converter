@@ -535,6 +535,22 @@ export function transformClassDeclaration(
                                     ],
                                     undefined,
                                     ts.createBlock([
+                                        ...transformClassMethodDeclaration(
+                                            visitor,
+                                            context,
+                                            methods
+                                        ),
+                                        ...transformClassEmitDeclaration(
+                                            visitor,
+                                            context,
+                                            emits
+                                        ),
+                                        ...transformClassLifeCycleDeclaration(
+                                            visitor,
+                                            context,
+                                            lifecycles
+                                        ),
+
                                         ...transformClassInjectionDeclaration(
                                             injections
                                         ),
@@ -543,35 +559,20 @@ export function transformClassDeclaration(
                                             context,
                                             states
                                         ),
-                                        ...transformClassEmitDeclaration(
-                                            visitor,
-                                            context,
-                                            emits
-                                        ),
-                                        ...transformClassMethodDeclaration(
-                                            visitor,
-                                            context,
-                                            methods
-                                        ),
                                         ...transformClassComputedDeclaration(
                                             visitor,
                                             context,
                                             computed
                                         ),
-                                        ...transformClassLifeCycleDeclaration(
+                                        ...transformClassProviderDeclaration(
                                             visitor,
                                             context,
-                                            lifecycles
+                                            providers
                                         ),
                                         ...transformClassWatchDeclaration(
                                             visitor,
                                             context,
                                             watchers
-                                        ),
-                                        ...transformClassProviderDeclaration(
-                                            visitor,
-                                            context,
-                                            providers
                                         ),
                                         ...transformClassDeclarationReturn([
                                             ...injections,
