@@ -20,14 +20,41 @@ import {
 import { some, find, first, firstOrUndefined, length } from './utils';
 import {
     contextProperty,
-    vueClassSupport,
-    vueComponentSupport,
-    vuePropertyDecorator,
+    Libs,
     lifecycles,
     Identifiers,
     Decorators
 } from './constant';
 import { classNeedTransform } from './transform';
+
+function namedImportsContains(
+    declaration: ts.ImportDeclaration,
+    specifier: ts.Declaration
+) {
+    if (declaration.importClause && declaration.importClause.namedBindings) {
+        if (ts.isNamedImports(declaration.importClause.namedBindings)) {
+            return !!find(
+                declaration.importClause.namedBindings.elements,
+                x => x === specifier
+            );
+        }
+    }
+    return false;
+}
+
+function defaultImportsEqual(
+    declaration: ts.ImportDeclaration,
+    specifier: ts.Declaration
+) {
+    if (
+        declaration.importClause &&
+        declaration.importClause.name &&
+        declaration.importClause.name === specifier
+    ) {
+        return true;
+    }
+    return false;
+}
 
 export function isVueClass(
     type: ts.ExpressionWithTypeArguments,
@@ -35,16 +62,27 @@ export function isVueClass(
 ): boolean {
     const symbol = checker.getSymbolAtLocation(type.expression);
     if (symbol && length(symbol.declarations)) {
+        const declaration = first(symbol.declarations);
         const importDeclaration = findParents(
-            first(symbol.declarations),
+            declaration,
             ts.isImportDeclaration
         );
         if (
             importDeclaration &&
-            ts.isStringLiteral(importDeclaration.moduleSpecifier) &&
-            vueClassSupport.includes(importDeclaration.moduleSpecifier.text)
+            importDeclaration.importClause &&
+            ts.isStringLiteral(importDeclaration.moduleSpecifier)
         ) {
-            return true;
+            const specifier = importDeclaration.moduleSpecifier.text;
+            switch (specifier) {
+                case Libs.vue:
+                    return defaultImportsEqual(importDeclaration, declaration);
+                case Libs.vueTsx:
+                case Libs.vueClassComponent:
+                case Libs.vuePropertyDecorator:
+                    if (namedImportsContains(importDeclaration, declaration)) {
+                        return true;
+                    }
+            }
         }
     }
     return false;
@@ -56,16 +94,24 @@ export function isComponentDecorator(
 ): boolean {
     const symbol = checker.getSymbolAtLocation(expr.expression);
     if (symbol && length(symbol.declarations)) {
+        const declaration = first(symbol.declarations);
         const importDeclaration = findParents(
-            first(symbol.declarations),
+            declaration,
             ts.isImportDeclaration
         );
         if (
             importDeclaration &&
-            ts.isStringLiteral(importDeclaration.moduleSpecifier) &&
-            vueComponentSupport.includes(importDeclaration.moduleSpecifier.text)
+            ts.isStringLiteral(importDeclaration.moduleSpecifier)
         ) {
-            return true;
+            const specifier = importDeclaration.moduleSpecifier.text;
+            switch (specifier) {
+                case Libs.vueClassComponent:
+                    return defaultImportsEqual(importDeclaration, declaration);
+                case Libs.vuePropertyDecorator:
+                    if (namedImportsContains(importDeclaration, declaration)) {
+                        return true;
+                    }
+            }
         }
     }
 
@@ -85,7 +131,7 @@ export function isInsidePropertyDecorator(
         if (
             importDeclaration &&
             ts.isStringLiteral(importDeclaration.moduleSpecifier) &&
-            importDeclaration.moduleSpecifier.text === vuePropertyDecorator
+            importDeclaration.moduleSpecifier.text === Libs.vuePropertyDecorator
         ) {
             return true;
         }

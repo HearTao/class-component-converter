@@ -8,14 +8,12 @@ export const contextProperty = [
     '$store'
 ];
 
-export const vueClassSupport = ['vue', 'vue-tsx-support'];
-
-export const vuePropertyDecorator = 'vue-property-decorator';
-
-export const vueComponentSupport = [
-    'vue-class-component',
-    vuePropertyDecorator
-];
+export enum Libs {
+    vue = 'vue',
+    vueTsx = 'vue-tsx-support',
+    vuePropertyDecorator = 'vue-property-decorator',
+    vueClassComponent = 'vue-class-component'
+}
 
 export const lifecycles = [
     'beforeCreate',
