@@ -30,6 +30,7 @@ class VHost implements ts.CompilerHost {
     /**
      * @todo
      */
+    /* istanbul ignore next */
     trace(s: string): void {}
 
     directoryExists(directoryName: string): boolean {
@@ -40,6 +41,7 @@ class VHost implements ts.CompilerHost {
         }
     }
 
+    /* istanbul ignore next */
     realpath(path: string): string {
         return vol.realpathSync(path).toString();
     }
@@ -48,6 +50,7 @@ class VHost implements ts.CompilerHost {
         return this.cwd;
     }
 
+    /* istanbul ignore next */
     getDirectories(path: string): string[] {
         const dirents = vol.readdirSync(path, {
             withFileTypes: true
@@ -77,6 +80,7 @@ class VHost implements ts.CompilerHost {
         try {
             vol.writeFileSync(filePath, data);
         } catch (e) {
+            /* istanbul ignore next */
             if (`function` === typeof onError) onError(e.message);
         }
     }
@@ -112,6 +116,7 @@ class VHost implements ts.CompilerHost {
                 onError(
                     `ENOENT: no such file or directory, stat '${fileName}'`
                 );
+            /* istanbul ignore if */
             if (shouldCreateNewSourceFile) {
                 const content: string = ``;
                 this.writeFile(filePath, content, true);
@@ -136,6 +141,7 @@ class VHost implements ts.CompilerHost {
         return true;
     }
 
+    /* istanbul ignore next */
     getNewLine(): string {
         return `\n`;
     }
