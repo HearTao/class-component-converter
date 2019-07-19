@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`snap 1`] = `
+"import * as tsx from \\"vue-tsx-support\\";
+import { Component, Prop } from \\"vue-property-decorator\\";
+const YourComponent = {
+  steup(
+    props: {
+      propsA: number | undefined;
+    },
+    context
+  ) {
+    return {};
+  }
+};
+"
+`;

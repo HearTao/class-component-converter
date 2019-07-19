@@ -48,8 +48,7 @@ function defaultImportsEqual(
 ) {
     if (
         declaration.importClause &&
-        declaration.importClause.name &&
-        declaration.importClause.name === specifier
+        declaration.importClause === specifier
     ) {
         return true;
     }

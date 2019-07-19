@@ -429,7 +429,7 @@ export function transformClassProviderDeclaration(
     context: ts.TransformationContext,
     providers: ReadonlyArray<ClassProviderDeclaration>
 ): ts.ExpressionStatement[] {
-    return [
+    return providers.length ? [
         ts.createExpressionStatement(
             ts.createCall(ts.createIdentifier(Identifiers.provide), undefined, [
                 ts.createObjectLiteral(
@@ -446,7 +446,7 @@ export function transformClassProviderDeclaration(
                 )
             ])
         )
-    ];
+    ] : [];
 }
 
 export function transformClassInjectionDeclaration(
@@ -636,7 +636,7 @@ export function trackOriginalFromAssignment(
     node: ts.VariableDeclaration
 ): ts.Declaration | undefined {
     while (node && ts.isVariableDeclaration(node) && node.initializer) {
-        const symbol = checker.getSymbolAtLocation(node.initializer);
+        const symbol = checker.getSymbolAtLocation(skipParens(node.initializer));
         if (symbol && symbol.valueDeclaration) {
             if (ts.isVariableDeclaration(symbol.valueDeclaration)) {
                 node = symbol.valueDeclaration;
