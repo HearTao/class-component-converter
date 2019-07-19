@@ -87,7 +87,7 @@ export default class YourComponent extends tsx.Component<{}> {
         }
         console.log(123)
 
-        const self = this
+        const self = (this)
         self.fooo()
         console.log(self.propsA)
         console.log(self.$route)

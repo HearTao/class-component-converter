@@ -686,34 +686,35 @@ export function transformPropertyAccessExpression(
         if (
             original &&
             ts.isVariableDeclaration(original) &&
-            original.initializer &&
-            original.initializer.kind === ts.SyntaxKind.ThisKeyword
+            original.initializer
         ) {
-            const componentSymbol = checker.getSymbolAtLocation(
-                original.initializer
-            );
-            if (
-                componentSymbol &&
-                componentSymbol.valueDeclaration &&
-                declarationNeedTransform(
-                    checker,
-                    componentSymbol.valueDeclaration
-                )
-            )
-                return transformPropertyAccessName(
-                    checker,
-                    node,
-                    mapDef(
-                        checker.getSymbolAtLocation(original.initializer),
-                        symbol =>
-                            mapDef(
-                                symbol.members &&
-                                    symbol.members.get(node.name
-                                        .text as ts.__String),
-                                s => s.valueDeclaration
-                            )
+            const initializer = skipParens(original.initializer);
+            if (initializer.kind === ts.SyntaxKind.ThisKeyword) {
+                const componentSymbol = checker.getSymbolAtLocation(initializer);
+                if (
+                    componentSymbol &&
+                    componentSymbol.valueDeclaration &&
+                    declarationNeedTransform(
+                        checker,
+                        componentSymbol.valueDeclaration
                     )
-                );
+                ) {
+                    return transformPropertyAccessName(
+                        checker,
+                        node,
+                        mapDef(
+                            checker.getSymbolAtLocation(initializer),
+                            symbol =>
+                                mapDef(
+                                    symbol.members &&
+                                        symbol.members.get(node.name
+                                            .text as ts.__String),
+                                    s => s.valueDeclaration
+                                )
+                        )
+                    );
+                }
+            }
         }
     }
 
@@ -781,11 +782,12 @@ export function transformVariableDeclaration(
     checker: ts.TypeChecker,
     node: ts.VariableDeclaration
 ) {
+    const initializer = node.initializer && skipParens(node.initializer)
     if (
-        node.initializer &&
-        skipParens(node.initializer).kind === ts.SyntaxKind.ThisKeyword
+        initializer &&
+        skipParens(initializer).kind === ts.SyntaxKind.ThisKeyword
     ) {
-        const symbol = checker.getSymbolAtLocation(node.initializer);
+        const symbol = checker.getSymbolAtLocation(initializer);
         if (
             symbol &&
             symbol.valueDeclaration &&
