@@ -46,10 +46,7 @@ function defaultImportsEqual(
     declaration: ts.ImportDeclaration,
     specifier: ts.Declaration
 ) {
-    if (
-        declaration.importClause &&
-        declaration.importClause === specifier
-    ) {
+    if (declaration.importClause && declaration.importClause === specifier) {
         return true;
     }
     return false;

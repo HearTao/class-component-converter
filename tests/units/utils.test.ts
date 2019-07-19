@@ -1,4 +1,11 @@
-import { cast, first, assertDef, matcher } from '../../src/utils';
+import {
+    cast,
+    first,
+    assertDef,
+    matcher,
+    length,
+    append
+} from '../../src/utils';
 
 function isNum(v: string | number): v is number {
     return typeof v === 'number';
@@ -75,5 +82,33 @@ describe('utils', () => {
         expect(recvOne).not.toHaveBeenCalled();
         expect(recvTwo).not.toHaveBeenCalled();
         expect(recvOtherwise).toHaveBeenCalledWith(3);
+    });
+
+    test(`'length' should work`, () => {
+        expect(length([1, 2])).toBe(2);
+    });
+
+    test(`'length' should work with empty`, () => {
+        expect(length([])).toBe(0);
+    });
+
+    test(`'length' should work with undefined`, () => {
+        expect(length(undefined)).toBe(0);
+    });
+
+    test(`'append' should work`, () => {
+        expect(append([1, 2], 3)).toEqual([1, 2, 3]);
+    });
+
+    test(`'append' should work with empty item`, () => {
+        expect(append([1, 2], undefined)).toEqual([1, 2]);
+    });
+
+    test(`'append' should work with empty array`, () => {
+        expect(append(undefined, 1)).toEqual([1]);
+    });
+
+    test(`'append' should work with empty`, () => {
+        expect(append(undefined, undefined).length).toBe(0);
     });
 });

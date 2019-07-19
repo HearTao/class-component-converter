@@ -429,24 +429,30 @@ export function transformClassProviderDeclaration(
     context: ts.TransformationContext,
     providers: ReadonlyArray<ClassProviderDeclaration>
 ): ts.ExpressionStatement[] {
-    return providers.length ? [
-        ts.createExpressionStatement(
-            ts.createCall(ts.createIdentifier(Identifiers.provide), undefined, [
-                ts.createObjectLiteral(
-                    providers.map(provider =>
-                        ts.createPropertyAssignment(
-                            provider.provide,
-                            ts.visitEachChild(
-                                provider.decl.initializer,
-                                visitor,
-                                context
-                            )
-                        )
-                    )
-                )
-            ])
-        )
-    ] : [];
+    return providers.length
+        ? [
+              ts.createExpressionStatement(
+                  ts.createCall(
+                      ts.createIdentifier(Identifiers.provide),
+                      undefined,
+                      [
+                          ts.createObjectLiteral(
+                              providers.map(provider =>
+                                  ts.createPropertyAssignment(
+                                      provider.provide,
+                                      ts.visitEachChild(
+                                          provider.decl.initializer,
+                                          visitor,
+                                          context
+                                      )
+                                  )
+                              )
+                          )
+                      ]
+                  )
+              )
+          ]
+        : [];
 }
 
 export function transformClassInjectionDeclaration(
@@ -636,7 +642,9 @@ export function trackOriginalFromAssignment(
     node: ts.VariableDeclaration
 ): ts.Declaration | undefined {
     while (node && ts.isVariableDeclaration(node) && node.initializer) {
-        const symbol = checker.getSymbolAtLocation(skipParens(node.initializer));
+        const symbol = checker.getSymbolAtLocation(
+            skipParens(node.initializer)
+        );
         if (symbol && symbol.valueDeclaration) {
             if (ts.isVariableDeclaration(symbol.valueDeclaration)) {
                 node = symbol.valueDeclaration;
@@ -690,7 +698,9 @@ export function transformPropertyAccessExpression(
         ) {
             const initializer = skipParens(original.initializer);
             if (initializer.kind === ts.SyntaxKind.ThisKeyword) {
-                const componentSymbol = checker.getSymbolAtLocation(initializer);
+                const componentSymbol = checker.getSymbolAtLocation(
+                    initializer
+                );
                 if (
                     componentSymbol &&
                     componentSymbol.valueDeclaration &&
@@ -782,7 +792,7 @@ export function transformVariableDeclaration(
     checker: ts.TypeChecker,
     node: ts.VariableDeclaration
 ) {
-    const initializer = node.initializer && skipParens(node.initializer)
+    const initializer = node.initializer && skipParens(node.initializer);
     if (
         initializer &&
         skipParens(initializer).kind === ts.SyntaxKind.ThisKeyword
